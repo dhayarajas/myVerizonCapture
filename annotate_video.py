@@ -586,8 +586,8 @@ def card_intro(D, F, segs):
     im = Image.new("RGB", (W, PH), "#0b1220")
     d = ImageDraw.Draw(im)
     m, b, c = D.get("meta", {}), D.get("build", {}), D.get("cond", {})
-    d.text((90, 80), "MyVerizon App Performance", fill="#ffffff", font=F["h1"])
-    d.text((90, 160), f"{m.get('device', '')} · recorded {m.get('startISO', '')} · app {b.get('appVersion', '?')} ({b.get('build', '?')}) · iOS {b.get('os', '?')} · network {c.get('network', 'default')}",
+    d.text((90, 380), "MyVerizon App Performance", fill="#ffffff", font=F["h1"])
+    d.text((90, 460), f"{m.get('device', '')} · recorded {m.get('startISO', '')} · app {b.get('appVersion', '?')} ({b.get('build', '?')}) · iOS {b.get('os', '?')} · network {c.get('network', 'default')}",
            fill="#94a3b8", font=F["l"])
     K = D.get("kpi", {})
     cold = (D.get("cold") or {}).get("total")
@@ -598,7 +598,7 @@ def card_intro(D, F, segs):
              ("Requests", str(K.get("requests", "")), False),
              ("Budgets met", f"{sum(1 for x in bud if x.get('pass'))}/{sum(1 for x in bud if x.get('pass') is not None)}" if bud else "—",
               bud and any(x.get("pass") is False for x in bud))]
-    x, y = 90, 260
+    x, y = 90, 560
     for lab, val, bad in tiles:
         d.rounded_rectangle((x, y, x + 340, y + 170), 18, fill="#1e293b")
         d.text((x + 28, y + 30), val, fill="#f87171" if bad else "#ffffff", font=F["big"])
@@ -606,15 +606,6 @@ def card_intro(D, F, segs):
         x += 365
         if x + 340 > W - 60:
             x, y = 90, y + 195
-    y += 230
-    d.text((90, y), "How to read this video", fill="#e2e8f0", font=F["h2"])
-    y += 60
-    for ln in ["Left: the phone recording — taps flash a border, chips show spinner / no-network, speed changes are labelled.",
-               "Middle: live clock, screen, cold-start progress, what is BLOCKING the screen now (with the fix), key findings so far.",
-               "Right: the last 15 s of requests (critical path outlined in red) and a running event log.",
-               f"Idle stretches play at {FAST:g}× and key moments (taps, Face ID, request fan-out) at {SLOW:g}× — the clock always shows real time."]:
-        d.text((110, y), "•  " + ln, fill="#cbd5e1", font=F["l"])
-        y += 44
     return im
 
 
