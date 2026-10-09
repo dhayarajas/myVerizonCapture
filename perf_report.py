@@ -1226,6 +1226,89 @@ def cold_start(screens, launch_t, logs, markers, reqs, bio, can_eval, th):
             "first": out[-1]["to"]}
 
 
+UIEVENT_RE = re.compile(r"Evaluating dispatch of UIEvent: (0x[0-9a-f]+); type: (\d+)")
+UIEVENT_TYPES = {0: "touch", 1: "motion", 2: "remote control", 3: "hardware button", 4: "scroll", 5: "hover", 6: "pinch/rotate"}
+
+
+def user_events(logs, bio, life, bursts, screens, reqs, launch_t):
+    """User interactions: launch tap, taps / drags (UIKit UIEvent dispatch), Face ID steps, keyboard, system overlays."""
+    ev = []
+    at = lambda t: next((x["name"] for x in screens if x["start"] - 0.05 <= t < x["end"] + 0.05), "")
+    content = [r for r in reqs if r["cat"] in ("api", "auth", "image", "asset", "logging")]
+
+    def response(t0):
+        nxt = min((r for r in content if t0 - 0.02 <= r.get("issued", r["start"]) <= t0 + 1.5), key=lambda r: r.get("issued", r["start"]), default=None)
+        chg = next((b["start"] for b in bursts if t0 <= b["start"] <= t0 + 3), None)
+        return ({"req": nxt["id"], "reqAfter": round(nxt.get("issued", nxt["start"]) - t0, 3)} if nxt else {}) | \
+               ({"screenAfter": round(chg - t0, 3)} if chg is not None else {})
+    if launch_t is not None:
+        ev.append({"t": round(launch_t, 3), "end": round(launch_t, 3), "kind": "launch", "label": "App icon tapped (launch)",
+                   "screen": "Home screen", **response(launch_t)})
+    # touches
+    groups = []
+    for l in logs:
+        if l["src"] != "app" or l["sub"] != "UIKitCore":
+            continue
+        m = UIEVENT_RE.search(l["msg"])
+        if not m:
+            continue
+        typ = int(m.group(2))
+        if groups and groups[-1]["type"] == typ and l["t"] - groups[-1]["end"] <= 0.4:
+            groups[-1]["end"] = l["t"]
+            groups[-1]["n"] += 1
+        else:
+            groups.append({"start": l["t"], "end": l["t"], "type": typ, "n": 1})
+    for g in groups:
+        dur = g["end"] - g["start"]
+        name = UIEVENT_TYPES.get(g["type"], f"event type {g['type']}")
+        if g["type"] == 0:
+            kind, label = ("tap", "Tap") if dur <= 0.35 else ("drag", "Touch & drag / scroll")
+        else:
+            kind, label = "input", name.capitalize()
+        ev.append({"t": round(g["start"], 3), "end": round(g["end"], 3), "kind": kind, "label": label,
+                   "screen": at(g["start"]), "detail": f"{g['n']} UIKit dispatches over {dur*1000:.0f} ms (measured from touch-down)", **response(g["start"])})
+    # Face ID
+    for b in bio:
+        steps = [(k, b[k]) for k in ("ui", "face", "matched") if b.get(k)]
+        ev.append({"t": round(b["start"], 3), "end": round(b.get("end", b["start"]), 3), "kind": "bio", "label": "Face ID",
+                   "screen": at(b["start"]), "result": b.get("result", "?"),
+                   "steps": [{"k": {"ui": "prompt shown", "face": "face detected", "matched": "matched"}[k], "t": round(v, 3)} for k, v in steps],
+                   **response(b.get("end", b["start"]))})
+    # keyboard + system overlays (app inactive)
+    kb, inactive = None, None
+    seen_active = False
+    for l in logs:
+        if l["src"] != "app":
+            continue
+        m = re.search(r"handleKeyboardChange: set currentKeyboard:([YN])", l["msg"])
+        if m and seen_active:
+            if m.group(1) == "Y" and kb is None:
+                kb = l["t"]
+            elif m.group(1) == "N" and kb is not None:
+                ev.append({"t": round(kb, 3), "end": round(l["t"], 3), "kind": "keyboard", "label": "Keyboard shown", "screen": at(kb)})
+                kb = None
+        if "applicationDidBecomeActive" in l["msg"]:
+            seen_active = True
+        m = re.search(r"Deactivation reason (added|removed): \d+; deactivation reasons: (\d+) -> (\d+)", l["msg"])
+        if m and seen_active:
+            a, b_ = int(m.group(2)), int(m.group(3))
+            if a == 0 and b_ != 0:
+                inactive = l["t"]
+            elif b_ == 0 and inactive is not None:
+                if l["t"] - inactive >= 0.2:
+                    ev.append({"t": round(inactive, 3), "end": round(l["t"], 3), "kind": "overlay", "label": "System overlay (app inactive)",
+                               "screen": at(inactive), "detail": "e.g. Face ID sheet, notification, control centre"})
+                inactive = None
+    # no device log: infer taps from screen changes not preceded by a response
+    if not any(e["kind"] in ("tap", "drag") for e in ev):
+        for b in bursts:
+            if b.get("trigger") is None and b["peak"] >= 0.02 and (launch_t is None or b["start"] > launch_t + 1.5):
+                ev.append({"t": round(max(0, b["start"] - 0.1), 3), "end": round(b["start"], 3), "kind": "tap", "label": "Likely tap (inferred from screen change)",
+                           "screen": at(b["start"] - 0.2), "inferred": True, **response(b["start"] - 0.1)})
+    ev.sort(key=lambda e: e["t"])
+    return ev
+
+
 def network_gaps(reqs, end_s, periods, screens, bursts, bio, can_eval, logs, markers, threads, min_gap=0.4):
     """Stretches with no app request in flight (analytics/tunnels ignored) and what happened meanwhile."""
     iv = sorted((r.get("issued", r["start"]), r["end"]) for r in reqs
@@ -1377,6 +1460,14 @@ def main():
     for p in periods:
         p["threads"] = thread_summary(threads, p["start"], p["end"])
     gaps = network_gaps(reqs, end_s, periods, screens, bursts, bio_iv, can_eval, logs, markers, threads)
+    uev = user_events(logs, bio_iv, life, bursts, screens, reqs, launch_t)
+    for e in uev:
+        if e["kind"] in ("tap", "drag") and e.get("screenAfter") is not None and e["screenAfter"] >= 1.0 and not e.get("inferred"):
+            findings.append({"sev": "med" if e["screenAfter"] >= 2 else "low", "title": f"Screen responded {e['screenAfter']:.2f}s after a tap on “{e['screen']}”",
+                             "impact": e["screenAfter"], "detail": f"{e['label']} at {e['t']:.2f}s; first request "
+                             + (f"issued +{e['reqAfter']:.2f}s" if "reqAfter" in e else "none within 1.5s") + ".",
+                             "rec": "Give immediate visual feedback on tap (pressed state / skeleton) while the request runs.",
+                             "refs": [e["req"]] if "req" in e else [], "t": e["t"], "kind": "tap"})
     for g in gaps:
         if g["kind"] == "wait" and g["dur"] >= 0.5:
             findings.append({"sev": "med" if g["dur"] >= 1 else "low", "title": f"{g['dur']:.2f}s with a spinner but no network activity ({g['start']:.1f}s → {g['end']:.1f}s)",
@@ -1442,7 +1533,7 @@ def main():
         "logHist": log_hist(log_t, end_s),
         "errT": [l["t"] for l in logs if l["lvl"] in ("Error", "Fault")],
         "devices": {k or "mac": v for k, v in devices.items()}, "end": end_s,
-        "bio": bio_iv, "taskInfo": taskinfo, "screens": screens, "gaps": gaps,
+        "bio": bio_iv, "taskInfo": taskinfo, "screens": screens, "gaps": gaps, "uev": uev,
         "threads": ({"main": threads["main"], "n": threads["threads"], "cats": threads["cats"], "bins": threads["bins"], "step": threads["step"],
                      "mainEvents": [{k: x[k] for k in ("t", "lib", "cat", "msg")} for x in threads["events"] if x["main"]][:3000],
                      "total": len(threads["events"]), "mainTotal": sum(1 for x in threads["events"] if x["main"])} if threads else None), "savings": savings(periods, bursts, R, reqs), "budgets": budgets, "cold": cold,
@@ -1573,6 +1664,8 @@ const reqLink=id=>{const r=R[id];return `<a class="j" onclick="openReq(${id})">$
 const PHC={'server wait (TTFB)':'#2563eb','connection setup':'#0891b2','download':'#0d9488','waiting for a connection':'#f472b6','on-device work':'#ef4444','Face ID prompt (user)':'#7c3aed','request (no phase data)':'#94a3b8','queued on device':'#f472b6','no request (on-device / user)':'#ef4444'};
 const GAPC={wait:'#ef4444',bio:'#7c3aed',user:'#0891b2',idle:'#94a3b8'};
 const GAPN={wait:'User waiting — spinner, no network',bio:'Face ID prompt',user:'User on screen',idle:'Idle'};
+const UEC={launch:'#0f766e',tap:'#e11d48',drag:'#ea580c',bio:'#7c3aed',keyboard:'#0369a1',overlay:'#64748b',input:'#475569'};
+const UEI={launch:'🚀',tap:'👆',drag:'✋',bio:'🔐',keyboard:'⌨️',overlay:'⏸',input:'•'};
 const TC={'App code':'#0d9488','UI (UIKit)':'#2563eb','WebKit':'#9333ea','Network':'#0891b2','Security & auth':'#d97706','Location':'#65a30d','Prefs & IPC':'#64748b','Other':'#a3a3a3'};
 const msf=v=>v<1?(v*1000).toFixed(0)+' ms':s2(v);
 function phBar(r){const ph=r.ph;if(!ph)return '';const q=r.queue>0.05?r.queue:ph.wait;
@@ -1644,11 +1737,11 @@ if(D.logsTotal){$('#logsub').textContent=`— ${D.logsTotal.toLocaleString()} li
 const on=new Set(['api','auth','image','asset','logging']);
 $('#cats').innerHTML=CAT.map(c=>`<label><input type="checkbox" data-c="${c}" ${on.has(c)?'checked':''}> <span class="pill" style="background:${col(c)}">${c}</span></label>`).join(' ');
 document.querySelectorAll('#cats input').forEach(i=>i.onchange=()=>{i.checked?on.add(i.dataset.c):on.delete(i.dataset.c);draw()});
-$('#leg').innerHTML='<span><i style="background:var(--busy)"></i>loading indicator</span><span><i style="background:var(--change)"></i>screen change</span><span><i style="background:var(--idle)"></i>idle</span><span><i style="border:2px solid var(--fg)"></i>on a critical path</span><span><i style="background:var(--queue)"></i>queued on device (app issued, not yet sent)</span><span><i style="background:var(--gap)"></i>log error</span><span><i style="background:var(--auth)"></i>app marker</span>'+(D.threads?' · threads: '+Object.entries(TC).map(([k,c])=>`<span><i style="background:${c}"></i>${k}</span>`).join(''):'')+'<span><i style="background:#7c3aed"></i>Face ID</span>'+((D.gaps||[]).length?' · no-network gaps: '+Object.entries(GAPN).map(([k,n])=>`<span><i style="background:${GAPC[k]}"></i>${n}</span>`).join(''):'');
+$('#leg').innerHTML='<span><i style="background:var(--busy)"></i>loading indicator</span><span><i style="background:var(--change)"></i>screen change</span><span><i style="background:var(--idle)"></i>idle</span><span><i style="border:2px solid var(--fg)"></i>on a critical path</span><span><i style="background:var(--queue)"></i>queued on device (app issued, not yet sent)</span><span><i style="background:var(--gap)"></i>log error</span><span><i style="background:var(--auth)"></i>app marker</span>'+(D.threads?' · threads: '+Object.entries(TC).map(([k,c])=>`<span><i style="background:${c}"></i>${k}</span>`).join(''):'')+'<span><i style="background:#7c3aed"></i>Face ID</span>'+((D.uev||[]).length?' · user events: '+[['launch','launch'],['tap','tap'],['drag','drag/scroll'],['bio','Face ID'],['keyboard','keyboard'],['overlay','system overlay']].map(([k,n])=>`<span>${UEI[k]} ${n}</span>`).join(''):'')+((D.gaps||[]).length?' · no-network gaps: '+Object.entries(GAPN).map(([k,n])=>`<span><i style="background:${GAPC[k]}"></i>${n}</span>`).join(''):'');
 const crit=new Set();[...D.periods,...D.bursts].forEach(p=>(p.chain||[]).forEach(c=>c.kind=='req'&&crit.add(c.id)));
 $('#zoom').oninput=draw;
 function draw(){const pxs=+$('#zoom').value,W=Math.ceil(D.end*pxs)+40,X=t=>t*pxs+4,FH=96,RH=15;
- const rows=R.filter(r=>on.has(r.cat));const lanes=[['Screen',FH],['Screens',RH+4],['Screen state',RH],['Loading / render',RH]];if((D.gaps||[]).length)lanes.push(['No network',RH+4]);if(D.threads){lanes.push(['Main thread',RH*2]);lanes.push(['Background threads',RH*2])}if(D.logsTotal)lanes.push(['App log',RH*2]);lanes.push(['Time (s)',RH]);
+ const rows=R.filter(r=>on.has(r.cat));const lanes=[['Screen',FH],['Screens',RH+4],['Screen state',RH],['Loading / render',RH]];if((D.uev||[]).length)lanes.push(['User events',RH+8]);if((D.gaps||[]).length)lanes.push(['No network',RH+4]);if(D.threads){lanes.push(['Main thread',RH*2]);lanes.push(['Background threads',RH*2])}if(D.logsTotal)lanes.push(['App log',RH*2]);lanes.push(['Time (s)',RH]);
  let y=0,top={};lanes.forEach(([n,h])=>{top[n]=y;y+=h});const H=y+rows.length*RH+6;
  let s=`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-size="10" font-family="system-ui"><defs>${Object.entries(GAPC).map(([k,c])=>`<pattern id="hatch-${k}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="${c}" opacity=".12"/><line x1="0" y1="0" x2="0" y2="6" stroke="${c}" stroke-width="2" opacity=".45"/></pattern>`).join('')}</defs>`;
  const tw=FH*0.46,step=Math.max(0.5,Math.ceil(tw/pxs/0.5)*0.5);
@@ -1672,15 +1765,22 @@ function draw(){const pxs=+$('#zoom').value,W=Math.ceil(D.end*pxs)+40,X=t=>t*pxs
   s+=`<rect x="${x0}" y="${y}" width="${w}" height="${H-y}" fill="url(#hatch-${g.kind})" opacity=".55" data-gap="${i}" style="cursor:pointer"/>`;
   s+=`<rect x="${x0}" y="${top['No network']+1}" width="${w}" height="${RH+2}" rx="3" fill="${gc}" data-gap="${i}" style="cursor:pointer"/>`;
   if(w>40)s+=`<svg x="${x0+3}" y="${top['No network']}" width="${w-6}" height="${RH+4}" style="pointer-events:none"><text x="0" y="${RH-1}" fill="#fff" font-weight="600">${esc(g.label)}</text></svg>`});
+ (D.uev||[]).forEach((u,i)=>{const yb=top['User events'],x0=X(u.t),c=UEC[u.kind]||'#64748b',w=Math.max(0,(u.end-u.t)*pxs),cy=yb+(RH+8)/2;
+  if(u.kind=='overlay'){s+=`<rect x="${x0}" y="${yb+2}" width="${Math.max(2,w)}" height="${RH+4}" rx="3" fill="${c}" opacity=".25" data-uev="${i}" style="cursor:pointer"/>`;return}
+  if(u.kind=='tap'||u.kind=='launch'||u.kind=='drag')s+=`<line x1="${x0}" x2="${x0}" y1="${yb}" y2="${H}" stroke="${c}" stroke-width="1.5" stroke-dasharray="3 3" opacity=".8" style="pointer-events:none"/>`;
+  if(u.kind=='bio'){s+=`<rect x="${x0}" y="${cy-5}" width="${Math.max(3,w)}" height="10" rx="5" fill="${c}" data-uev="${i}" style="cursor:pointer"/>`;(u.steps||[]).forEach(st=>s+=`<circle cx="${X(st.t)}" cy="${cy}" r="2.5" fill="#fff" style="pointer-events:none"/>`)}
+  else if(u.kind=='drag')s+=`<rect x="${x0}" y="${cy-4}" width="${Math.max(6,w)}" height="8" rx="4" fill="${c}" data-uev="${i}" style="cursor:pointer"/>`;
+  else s+=`<circle cx="${x0}" cy="${cy}" r="6" fill="${c}" stroke="#fff" stroke-width="1.5" data-uev="${i}" style="cursor:pointer" ${u.inferred?'stroke-dasharray="2 2" opacity=".75"':''}/>`;
+  s+=`<text x="${x0+(u.kind=='bio'?Math.max(3,w)+3:9)}" y="${cy+3.5}" fill="${c}" font-weight="700" style="pointer-events:none">${UEI[u.kind]||''} ${esc(u.kind=='launch'?'launch':u.kind=='bio'?'Face ID':u.inferred?'tap?':u.label.split(' ')[0].toLowerCase())}</text>`});
  rows.forEach((r,i)=>{const yy=y+i*RH+2,w=Math.max(2,r.dur*pxs);
   if(r.issued!=null&&r.queue>0.05)s+=`<rect x="${X(r.issued)}" y="${yy+3}" width="${r.queue*pxs}" height="${RH-10}" fill="var(--queue)" class="rq" data-id="${r.id}" style="cursor:pointer"/>`;
   s+=`<rect class="rq" data-id="${r.id}" x="${X(r.start)}" y="${yy}" width="${w}" height="${RH-4}" rx="2" fill="${col(r.cat)}" ${crit.has(r.id)?'stroke="var(--fg)" stroke-width="1.5"':''} style="cursor:pointer"/>`;
   if(r.dur*pxs<200)s+=`<text x="${X(r.start)+w+3}" y="${yy+9}" fill="var(--mut)">${(r.dur*1000).toFixed(0)}ms</text>`});
  s+=`<line id="cur" y1="0" y2="${H}" stroke="var(--high)" opacity=".6"/></svg>`;$('#tlR').innerHTML=s;
  $('#tlL').innerHTML=lanes.map(([n,h])=>`<div style="height:${h}px;line-height:${h}px;font-weight:600">${n}</div>`).join('')+rows.map(r=>`<div onclick="openReq(${r.id})" data-id="${r.id}"><span class="pill" style="background:${col(r.cat)}">${r.method}</span> ${esc(r.host.split('.').slice(-2,-1)[0]||'')} ${esc(r.short)}</div>`).join('');
- const svg=$('#tlR svg');svg.onclick=e=>{const id=e.target.dataset.id,gi=e.target.dataset.gap;if(id)openReq(+id);else if(gi!=null)openGap(+gi)};
+ const svg=$('#tlR svg');svg.onclick=e=>{const id=e.target.dataset.id,gi=e.target.dataset.gap,ui=e.target.dataset.uev;if(id)openReq(+id);else if(ui!=null)seek(D.uev[+ui].t);else if(gi!=null)openGap(+gi)};
  svg.onmousemove=e=>{const bx=svg.getBoundingClientRect(),t=Math.max(0,(e.clientX-bx.left-4)/pxs);$('#cur').setAttribute('x1',e.clientX-bx.left);$('#cur').setAttribute('x2',e.clientX-bx.left);
-  const id=e.target.dataset&&e.target.dataset.id,gi=e.target.dataset&&e.target.dataset.gap;if(id){$('#peek').style.display='none';showTip(+id,e)}else if(gi!=null){$('#peek').style.display='none';showGapTip(+gi,e)}else{hideTip();$('#peek').style.display='block';$('#peek img').src=thumbAt(t);$('#peek div').textContent=s2(t)}};
+  const id=e.target.dataset&&e.target.dataset.id,gi=e.target.dataset&&e.target.dataset.gap,ui=e.target.dataset&&e.target.dataset.uev;if(id){$('#peek').style.display='none';showTip(+id,e)}else if(ui!=null){$('#peek').style.display='none';showUevTip(+ui,e)}else if(gi!=null){$('#peek').style.display='none';showGapTip(+gi,e)}else{hideTip();$('#peek').style.display='block';$('#peek img').src=thumbAt(t);$('#peek div').textContent=s2(t)}};
  svg.onmouseleave=()=>{$('#peek').style.display='none';hideTip()};
  $('#tlL').onmousemove=e=>{const d=e.target.closest('[data-id]');d?showTip(+d.dataset.id,e):hideTip()};$('#tlL').onmouseleave=hideTip}
 // hover card
@@ -1725,6 +1825,15 @@ function gapBody(g,full){const lg=g.log||{},hl=(lg.highlights||[]).slice(0,full?
 function showGapTip(i,e){const g=D.gaps[i],tip=$('#tip');
  tip.innerHTML=`<div class="tt"><img src="${thumbAt(g.start+g.dur/2)}"><div style="flex:1;min-width:0"><h5><span class="pill" style="background:${GAPC[g.kind]}">${esc(GAPN[g.kind])}</span> ${s2(g.dur)} with no network</h5>
   <div class="u">${s2(g.start)} → ${s2(g.end)} · ${esc(g.what)}</div>${gapBody(g,false)}</div></div><div class="mut" style="margin-top:4px">Click for full details</div>`;
+ tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;let x=e.clientX+16,y=e.clientY+16;if(x+w>innerWidth-8)x=e.clientX-w-16;if(y+h>innerHeight-8)y=innerHeight-h-8;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
+function showUevTip(i,e){const u=D.uev[i],tip=$('#tip'),c=UEC[u.kind];
+ const rows=[['Screen',esc(u.screen||'—')],['Time',`${s2(u.t)}${u.end>u.t+0.005?' → '+s2(u.end)+' ('+msf(u.end-u.t)+')':''}`]];
+ if(u.detail)rows.push(['Detail',esc(u.detail)]);if(u.result)rows.push(['Result',esc(u.result)]);
+ (u.steps||[]).forEach(st=>rows.push([esc(st.k),`+${msf(st.t-u.t)} (${s2(st.t)})`]));
+ if(u.reqAfter!=null)rows.push(['First request',`${reqLink(u.req)} issued <b>+${msf(u.reqAfter)}</b>`]);
+ if(u.screenAfter!=null)rows.push(['Screen responded',`<b style="color:${u.screenAfter>=1?'var(--high)':u.screenAfter>=0.3?'var(--med)':'inherit'}">+${msf(u.screenAfter)}</b>`]);
+ tip.innerHTML=`<div class="tt"><img src="${thumbAt(u.t)}"><div style="flex:1;min-width:0"><h5><span class="pill" style="background:${c}">${UEI[u.kind]||''} ${esc(u.label)}</span></h5>
+  ${rows.map(([k,v])=>`<div class="row"><span>${k}</span><span>${v}</span></div>`).join('')}${u.inferred?'<div class="mut" style="margin-top:4px">Inferred from the video (no device log in this run).</div>':''}</div></div><div class="mut" style="margin-top:4px">Click to see the screen at this moment</div>`;
  tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;let x=e.clientX+16,y=e.clientY+16;if(x+w>innerWidth-8)x=e.clientX-w-16;if(y+h>innerHeight-8)y=innerHeight-h-8;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
 function openGap(i){const g=D.gaps[i];drawer(`<h3 style="margin-right:24px"><span class="pill" style="background:${GAPC[g.kind]}">${esc(GAPN[g.kind])}</span> ${s2(g.dur)} with no network · ${s2(g.start)} → ${s2(g.end)}</h3>
  <p>${esc(g.what)}</p><div class="strip"><figure><img src="${thumbAt(g.start)}"><figcaption>start ${s2(g.start)}</figcaption></figure><figure><img src="${thumbAt(g.start+g.dur/2)}"><figcaption>middle</figcaption></figure><figure><img src="${thumbAt(g.end)}"><figcaption>end ${s2(g.end)}</figcaption></figure></div>
@@ -1826,7 +1935,8 @@ if(D.logsTotal){const ev=n=>D.life.find(e=>e.event==n),L0=ev('Launch requested')
  summ('timeline',[kc(s2(D.end),'Recording'),kc(R.length,'Requests',Object.entries(cats).map(([k,v])=>k+' '+v).join(' · ')),
   kc(pk,'Peak concurrent requests','at '+s2(pkT)),kc(s2(busy),'API/auth calls in flight',`${(busy/D.end*100).toFixed(0)}% of the recording`),
   kc(s2(load),'Loading indicator on screen','',load/D.end>=0.25?'bad':''),...(D.logsTotal?[kc((Math.max(...D.logHist)*4).toLocaleString()+'/s','Peak app log rate')]:[])],
-  [...((D.gaps||[]).length?[`<b>${D.gaps.length}</b> no-network gaps totalling <b>${s2(sum(D.gaps.map(g=>g.dur)))}</b>; <b>${s2(sum(D.gaps.filter(g=>g.kind=='wait').map(g=>g.dur)))}</b> of it with a spinner on screen (user waiting on on-device work), ${s2(sum(D.gaps.map(g=>g.faceid)))} Face ID. Hover the hatched bands for what was happening.`]:[]),
+  [...((D.uev||[]).filter(u=>u.kind=='tap'||u.kind=='launch').map(u=>`${UEI[u.kind]} <b>${esc(u.label)}</b> at ${s2(u.t)} on “${esc(u.screen||'?')}” → first request +${u.reqAfter!=null?msf(u.reqAfter):'—'}, screen responded +${u.screenAfter!=null?msf(u.screenAfter):'—'}`)),
+   ...((D.gaps||[]).length?[`<b>${D.gaps.length}</b> no-network gaps totalling <b>${s2(sum(D.gaps.map(g=>g.dur)))}</b>; <b>${s2(sum(D.gaps.filter(g=>g.kind=='wait').map(g=>g.dur)))}</b> of it with a spinner on screen (user waiting on on-device work), ${s2(sum(D.gaps.map(g=>g.faceid)))} Face ID. Hover the hatched bands for what was happening.`]:[]),
    ...(bb?[`Busiest second: <b>${bb[0]}–${+bb[0]+1}s</b> with ${bb[1]} requests started.`]:[]),
    'Pink = waited on the device · outlined = on a critical path · shaded columns = loading indicator. Hover a bar for timing and issues; click for payloads.'])}
 // hosts
