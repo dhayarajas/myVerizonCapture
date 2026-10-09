@@ -1591,6 +1591,8 @@ table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:5px 6px;
 #tl{display:flex;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 #tlL{width:250px;flex:none;border-right:1px solid var(--line);font-size:11px}#tlL div{height:15px;line-height:15px;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 #tlR{overflow-x:auto;flex:1;position:relative}#tlR svg{display:block}.ctl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0}
+#curTime{position:fixed;z-index:21;display:none;pointer-events:none;background:#dc2626;color:#fff;font:600 11.5px ui-monospace,Menlo,monospace;padding:3px 8px;border-radius:6px;box-shadow:0 3px 10px #0004;white-space:nowrap}
+#curTime:after{content:"";position:absolute;right:-5px;top:50%;margin-top:-5px;border:5px solid transparent;border-right:0;border-left-color:#dc2626}
 #tip{position:fixed;z-index:20;display:none;pointer-events:none;width:430px;max-width:calc(100vw - 24px);background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 32px #0004;padding:10px 12px;font-size:12px}
 #tip .tt{display:flex;gap:10px}#tip .tt img{width:62px;border-radius:6px;border:1px solid var(--line);align-self:flex-start}#tip h5{margin:0 0 2px;font-size:13px}
 #tip .u{color:var(--mut);word-break:break-all;margin-bottom:6px}#tip .row{display:flex;justify-content:space-between;gap:8px;padding:1px 0}#tip .row span:first-child{color:var(--mut)}
@@ -1649,7 +1651,7 @@ pre.body{background:var(--bg);border:1px solid var(--line);border-radius:8px;pad
 <section data-tab="requests"><h2>All requests</h2><div class="sum" id="s-requests"></div><div class="card"><table id="all"></table></div></section>
 <section data-tab="logs"><h2>Device log <span class="mut" id="logsub"></span></h2><div class="sum" id="s-logs"></div><div id="logsec"></div></section>
 </main>
-<div id="peek"><img><div class="mono"></div></div><div id="tip"></div>
+<div id="peek"><img><div class="mono"></div></div><div id="tip"></div><div id="curTime"></div>
 <div id="drawer"><span class="x" onclick="closeD()">×</span><div id="dbody"></div></div>
 <script src="__PAYLOADS__"></script>
 <script src="__LOGS__"></script>
@@ -1790,9 +1792,11 @@ function draw(){const pxs=+$('#zoom').value,W=Math.ceil(D.end*pxs)+40,X=t=>t*pxs
   else{const bx=svg.getBoundingClientRect(),t=Math.max(0,(e.clientX-bx.left-4)/pxs);if(MEAS.a==null||MEAS.b!=null){MEAS.a=t;MEAS.b=null}else MEAS.b=t;drawMeasure()}};
  svg.onmousemove=e=>{const bx=svg.getBoundingClientRect(),t=Math.max(0,(e.clientX-bx.left-4)/pxs);$('#cur').setAttribute('x1',e.clientX-bx.left);$('#cur').setAttribute('x2',e.clientX-bx.left);
   const id=e.target.dataset&&e.target.dataset.id,gi=e.target.dataset&&e.target.dataset.gap,ui=e.target.dataset&&e.target.dataset.uev;if(id){$('#peek').style.display='none';showTip(+id,e)}else if(ui!=null){$('#peek').style.display='none';showUevTip(+ui,e)}else if(gi!=null){$('#peek').style.display='none';showGapTip(+gi,e)}else{hideTip();$('#peek').style.display='block';$('#peek img').src=thumbAt(t);$('#peek div').textContent=fmtT(t)}
+  const ct=$('#curTime');ct.textContent=fmtT(t)+(MEAS.a!=null&&MEAS.b==null?'  Δ '+fmtD(t-MEAS.a):'');ct.style.display='block';
+  ct.style.left=(e.clientX-ct.offsetWidth-9)+'px';ct.style.top=(e.clientY-ct.offsetHeight/2)+'px';
   const lx=e.clientX-bx.left,txt=fmtT(t)+(MEAS.a!=null&&MEAS.b==null?'  Δ '+fmtD(t-MEAS.a):''),T=$('#curT');T.textContent=txt;const tw=txt.length*6.6+8,ox=lx+tw+6>svg.width.baseVal.value?lx-tw-4:lx+4;
   T.setAttribute('x',ox+4);T.setAttribute('y',TL.ty-3);$('#curB').setAttribute('x',ox);$('#curB').setAttribute('y',TL.ty-14);$('#curB').setAttribute('width',tw);$('#curL').style.display=''};
- svg.onmouseleave=()=>{$('#peek').style.display='none';hideTip();$('#curL').style.display='none'};
+ svg.onmouseleave=()=>{$('#peek').style.display='none';hideTip();$('#curL').style.display='none';$('#curTime').style.display='none'};
  $('#tlL').onmousemove=e=>{const d=e.target.closest('[data-id]');d?showTip(+d.dataset.id,e):hideTip()};$('#tlL').onmouseleave=hideTip}
 // hover card
 const ISS={},CPATH={};
