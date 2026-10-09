@@ -40,5 +40,5 @@ echo "Exporting Proxyman traffic..."
 "$PROXYMAN_CLI" export-log -m all -f har -o "$PWD/$SESSION/traffic.har" >/dev/null || exit 1
 
 NO_OPEN=1 ./report.sh "$SESSION" -- ${APP_PROC:+--app-process "$APP_PROC"} || exit 1
-[[ "${ANNOTATE:-1}" == "0" ]] || python3 annotate_video.py "$SESSION" || echo "(annotated video export failed)"
+[[ "${ANNOTATE:-1}" == "0" ]] || NO_OPEN=1 ./annotate.sh "$SESSION" || echo "(annotated video export failed)"
 [[ -n "${NO_OPEN:-}" ]] || open "$SESSION/report.html"

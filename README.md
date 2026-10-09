@@ -38,7 +38,9 @@ Options: `NETWORK="3G" ./capture.sh` switches Proxyman's Network Conditions tool
 ./compare.sh                                  # all sessions -> captures/comparison.html
 ./compare.sh captures/session-A captures/session-B
 ./pull_threads.sh captures/session-<ts>       # re-pull thread data (the phone keeps it for a limited time)
-python3 annotate_video.py captures/session-<ts>   # annotated.mp4: recording + live panel + history (rolling 15 s waterfall + event log)
+./annotate.sh                                 # annotated.mp4 for the newest session (recording + live panel + history)
+./annotate.sh captures/session-<ts>           # … for a specific session
+ANNOTATE=1 ./report.sh captures/session-<ts>  # rebuild the report and the annotated video together
 python3 publish_reports.py                    # copy reports into reports/ for committing (--redact for a shareable copy)
 NO_OPEN=1 ./report.sh                         # don't open the browser
 ```

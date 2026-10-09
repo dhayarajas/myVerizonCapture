@@ -9,6 +9,7 @@
 #   ./report.sh captures/session-20261009-204735 captures/test-run.har
 #   ./report.sh captures/session-20261009-211154 -- --app-process myverizonEnterprise
 #   NO_OPEN=1 ./report.sh
+#   ANNOTATE=1 ./report.sh          (also export the annotated video; or use ./annotate.sh)
 set -u
 cd "${0:A:h}"
 PROXYMAN_CLI=/Applications/Proxyman.app/Contents/MacOS/proxyman-cli
@@ -33,4 +34,5 @@ fi
 [[ -f "$HAR" ]] || { echo "HAR file not found: $HAR"; exit 1; }
 
 python3 perf_report.py "$HAR" "$SESSION" "$@" || exit 1
+[[ "${ANNOTATE:-0}" == "1" ]] && { python3 annotate_video.py "$SESSION" || echo "(annotated video export failed)"; }
 [[ -n "${NO_OPEN:-}" ]] || open "$SESSION/report.html"

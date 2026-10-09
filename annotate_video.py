@@ -100,29 +100,66 @@ def panel(D, t, F):
                 extra += f", screen +{u['screenAfter']*1000:.0f}ms"
             d.text((42, y + 10), f"{lab}{(' on ' + u['screen']) if u.get('screen') else ''}{extra}"[:60], fill="#ffffff", font=F["s"])
             y += 54
-    y = max(y + 10, 470)
+    y = max(y + 10, 400)
     act = [r for r in R if r["cat"] not in ("tunnel",) and r.get("issued", r["start"]) <= t < r["end"]]
-    done = [r for r in R if r["cat"] not in ("tunnel", "analytics") and r["end"] <= t < r["end"] + 0.8]
-    d.text((28, y), f"REQUESTS IN FLIGHT  ({len(act)})", fill="#64748b", font=F["xs"])
-    y += 26
-    shown = sorted(act, key=lambda r: (r["cat"] == "analytics", r.get("issued", r["start"])))[:14]
-    for r in shown:
-        st = r.get("issued", r["start"])
-        tot = max(0.01, r["end"] - st)
-        frac = (t - st) / tot
-        q = r["start"] > t
-        c = CAT.get(r["cat"], "#64748b")
-        d.rounded_rectangle((28, y, PW - 28, y + 34), 6, fill="#1e293b")
-        d.rounded_rectangle((28, y, 28 + max(6, int((PW - 56) * frac)), y + 34), 6, fill="#f472b6" if q else c)
-        d.text((40, y + 7), short(r), fill="#ffffff", font=F["xs2"])
-        d.text((PW - 150, y + 7), ("queued " if q else "") + f"{t - st:.2f}s", fill="#e2e8f0", font=F["mono"])
-        y += 40
-    if len(act) > len(shown):
-        d.text((40, y), f"+{len(act) - len(shown)} more", fill="#94a3b8", font=F["xs"])
-        y += 26
-    for r in done[:4]:
-        d.text((40, y), f"✓ {short(r)}  {r['dur']:.2f}s", fill="#64748b", font=F["xs2"])
-        y += 26
+    na = sum(1 for r in act if r["cat"] == "analytics")
+    d.text((28, y), f"Requests in flight: {len(act) - na}" + (f"  (+{na} analytics)" if na else "") + "   →  history", fill="#64748b", font=F["xs"])
+    y += 34
+    # ---- what is blocking the screen right now
+    blk = blocking_now(D, t)
+    if blk:
+        lines = wrap(blk["what"], F["s"], PW - 84)
+        fix = wrap("FIX: " + blk["fix"], F["xs2"], PW - 84) if blk.get("fix") else []
+        h = 44 + 26 * len(lines) + 30 + 24 * len(fix) + (26 if blk.get("save") else 0)
+        d.rounded_rectangle((28, y, PW - 28, y + h), 10, fill="#2a0f12", outline="#ef4444", width=3)
+        d.text((44, y + 10), "BLOCKING THE SCREEN NOW", fill="#fca5a5", font=F["xs"])
+        d.text((PW - 230, y + 10), blk["span"][:22], fill="#fca5a5", font=F["xs"])
+        yy = y + 36
+        for ln in lines:
+            d.text((44, yy), ln, fill="#ffffff", font=F["s"])
+            yy += 26
+        frac = min(1, max(0, (t - blk["start"]) / max(0.01, blk["end"] - blk["start"])))
+        d.rounded_rectangle((44, yy + 4, PW - 44, yy + 18), 5, fill="#3f1d22")
+        d.rounded_rectangle((44, yy + 4, 44 + int((PW - 88) * frac), yy + 18), 5, fill="#ef4444")
+        d.text((PW - 230, yy - 1), f"{t - blk['start']:.2f}s / {blk['end'] - blk['start']:.2f}s", fill="#fecaca", font=F["mono"])
+        yy += 28
+        for ln in fix:
+            d.text((44, yy), ln, fill="#86efac", font=F["xs2"])
+            yy += 24
+        if blk.get("save"):
+            d.text((44, yy), f"Estimated saving: up to {blk['save']:.2f}s", fill="#4ade80", font=F["xs2"])
+        y += h + 14
+    # ---- findings so far
+    sev = {"high": 0, "med": 1, "low": 2, "info": 3}
+    col = {"high": "#dc2626", "med": "#d97706", "low": "#2563eb", "info": "#6b7280"}
+    seen = [f for f in D.get("findings", []) if f.get("t") is not None and f["t"] <= t and f["sev"] in ("high", "med")]
+    seen.sort(key=lambda f: (sev[f["sev"]], -(f.get("impact") or 0)))
+    if seen:
+        d.text((28, y), f"KEY FINDINGS SO FAR  ({len(seen)})", fill="#94a3b8", font=F["xs"])
+        y += 28
+    limit = PH - 150
+    for f in seen:
+        tl = wrap(f["title"], F["xs2"], PW - 200)
+        title = tl[:2] if len(tl) <= 2 else [tl[0], tl[1] + " …"]
+        fl = wrap("→ " + f["rec"], F["xs"], PW - 150)
+        fix = fl[:1] if len(fl) <= 1 else [fl[0] + " …"]
+        h = 10 + 23 * len(title) + 21 * len(fix) + 8
+        if y + h > limit:
+            break
+        new = t - f["t"] <= 2.0
+        d.rounded_rectangle((28, y, PW - 28, y + h), 8, fill="#1e293b" if not new else "#334155", outline=col[f["sev"]] if new else None, width=2)
+        d.rounded_rectangle((38, y + 9, 92, y + 31), 5, fill=col[f["sev"]])
+        d.text((44, y + 11), f["sev"].upper(), fill="#ffffff", font=F["xs"])
+        yy = y + 8
+        for ln in title:
+            d.text((102, yy), ln, fill="#ffffff", font=F["xs2"])
+            yy += 23
+        for ln in fix:
+            d.text((102, yy), ln, fill="#86efac", font=F["xs"])
+            yy += 21
+        if new:
+            d.text((PW - 84, y + 9), "NEW", fill="#fde047", font=F["xs"])
+        y += h + 8
     # mini timeline
     ty, x0, x1, end = PH - 92, 28, PW - 28, max(0.1, D["end"])
     X = lambda v: x0 + (x1 - x0) * min(1, max(0, v / end))
@@ -139,6 +176,74 @@ def panel(D, t, F):
     d.text((x0, ty + 34), fmt(0), fill="#64748b", font=F["mono"])
     d.text((x1 - 110, ty + 34), fmt(end), fill="#64748b", font=F["mono"])
     return im
+
+
+def wrap(text, f, width):
+    words, lines, cur = text.split(), [], ""
+    for w in words:
+        nxt = (cur + " " + w).strip()
+        if f.getlength(nxt) <= width:
+            cur = nxt
+        else:
+            if cur:
+                lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+FIXES = {
+    "slow": "Profile server time for this endpoint (it is almost all server wait); front it with the CDN/edge or fix origin routing.",
+    "slow-nocdn": "This host has no CDN in front — serve it from the edge / a closer region and profile the server time.",
+    "queue": "Requests wait for a free connection (6 per host over HTTP/1.1): use HTTP/2 multiplexing, or fewer / combined tile calls.",
+    "logging": "Don't await logging/telemetry before the next business call — make it fire-and-forget or batch it.",
+    "device": "Nothing is on the network: start the next request as soon as the response arrives and move parsing/layout off the main thread.",
+    "bio": "Face ID prompt (user) — not app time; keep the work before and after the prompt minimal.",
+    "conn": "New connection setup on the critical path — pre-warm or reuse connections to this host.",
+}
+
+
+def blocking_now(D, t):
+    """The critical-path step that is holding the screen at time t (spinner or render)."""
+    R = D["reqs"]
+    spans = [(p, p.get("name") or "loading") for p in D.get("periods", [])] + \
+            [(b, b.get("name") or "render") for b in D.get("bursts", []) if b.get("chain")]
+    for span, name in spans:
+        if not (span["start"] <= t < span["end"]):
+            continue
+        for c in span.get("chain", []):
+            if not (c["start"] <= t < c["end"]):
+                continue
+            save = None
+            if c["kind"] == "req":
+                r = R[c["id"]]
+                ph = r.get("ph")
+                what = f"Waiting on {r['method']} {r['short']}{(' [' + r['op'] + ']') if r.get('op') else ''} ({r['host']})"
+                if ph:
+                    what += f" — server wait {ph['ttfb']:.2f}s of {r['dur']:.2f}s"
+                if r["cat"] in ("logging", "analytics"):
+                    key = "logging"
+                elif ph and ph["setup"] >= 0.1 and t < r["start"] + ph["setup"]:
+                    key = "conn"
+                else:
+                    key = "slow" if r.get("cdn") else "slow-nocdn"
+                for sv in D.get("savings", []):
+                    if c["id"] in sv.get("refs", []):
+                        save = max(save or 0, sv["save"])
+            elif c["kind"] == "queue":
+                r = R[c["id"]]
+                what, key = f"Queued on the phone: {r['short']} is waiting for a free connection to {r['host']}", "queue"
+                save = next((sv["save"] for sv in D.get("savings", []) if c["id"] in sv.get("refs", [])), None)
+            else:
+                bio = any(b0 <= t < b1 for b0, b1 in c.get("bio", []))
+                if bio:
+                    what, key = "Face ID prompt on screen (user authenticating)", "bio"
+                else:
+                    what, key = "Nothing on the network — the app is working on the device", "device"
+                    save = next((sv["save"] for sv in D.get("savings", []) if sv["title"].startswith("On-device")), None)
+            return {"what": what, "fix": FIXES.get(key), "start": c["start"], "end": c["end"], "span": name, "save": save}
+    return None
 
 
 def build_events(D):
