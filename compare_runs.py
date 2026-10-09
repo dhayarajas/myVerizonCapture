@@ -18,8 +18,9 @@ FRIENDLY = {"recording": "Recording length", "spinner_total": "Total spinner tim
             "api_p50": "API p50", "api_p95": "API p95", "requests": "Requests", "api_calls": "API calls", "bytes": "Bytes received",
             "dup_image_bytes": "Duplicate image bytes", "queued_max": "Max on-device queueing", "cold_start_total": "Cold start total",
             "launch_to_first_content": "Launch → first content", "launch_to_first_api": "Launch → first API call",
-            "launch_to_did_finish_launching": "Launch → didFinishLaunching"}
-SECONDS = lambda k: not k.endswith(("requests", "api_calls", "bytes")) and k not in ("requests", "api_calls", "bytes", "dup_image_bytes")
+            "launch_to_did_finish_launching": "Launch → didFinishLaunching", "hitch_count": "Frame hitches", "hitch_ms": "Frozen-frame time (ms)",
+            "tap_feedback_max": "Slowest tap feedback", "resume_first_api": "Resume → first API call", "resume_settle": "Resume → screen settled"}
+SECONDS = lambda k: k not in ("requests", "api_calls", "bytes", "dup_image_bytes", "hitch_count", "hitch_ms")
 
 
 def pct(v, p):
@@ -39,7 +40,7 @@ def fmt(k, v):
         return "—"
     if "bytes" in k:
         return f"{v/1024:.0f} KB"
-    if k in ("requests", "api_calls"):
+    if k in ("requests", "api_calls", "hitch_count", "hitch_ms"):
         return f"{v:.0f}"
     return f"{v:.2f}s"
 
@@ -124,7 +125,24 @@ def main():
     for x in erows[:3]:
         take.append(f"<span class='mono'>{e(x['k'])}</span>: median {x['med']:.2f}s, p90 {x['p90']:.2f}s" + (f", server wait {x['ttfb']:.2f}s" if x["ttfb"] else ""))
 
-    head = "".join(f"<th><a href='{e(os.path.relpath(os.path.join(r['dir'], 'report.html'), out_dir))}'>{e(n)}</a></th>" for r, n in zip(runs, names))
+    tag = lambda r: " · ".join(x for x in (r.get("condition") if r.get("condition") not in (None, "default") else "",
+                                            (r.get("build") or {}).get("appVersion", "")) if x)
+    head = "".join(f"<th><a href='{e(os.path.relpath(os.path.join(r['dir'], 'report.html'), out_dir))}'>{e(n)}</a>"
+                   f"<div class='mut' style='font-weight:400'>{e(tag(r))}</div></th>" for r, n in zip(runs, names))
+    groups = defaultdict(list)
+    for r in runs:
+        groups[(r.get("condition") or "default", (r.get("build") or {}).get("appVersion") or "?")].append(r)
+    grows = ""
+    if len(groups) > 1:
+        gkeys = sorted(groups)
+        gh = "".join(f"<th>{e(c)} · {e(v)} <span class='mut'>({len(groups[(c, v)])})</span></th>" for c, v in gkeys)
+        for k in [x["k"] for x in rows if x["n"] >= 2][:20]:
+            cells = ""
+            for g in gkeys:
+                vals = [r["metrics"].get(k) for r in groups[g] if isinstance(r["metrics"].get(k), (int, float))]
+                cells += f"<td>{fmt(k, statistics.median(vals)) if vals else '—'}</td>"
+            grows += f"<tr><td>{e(label(k))}</td>{cells}</tr>"
+        grows = f"<h2>By network condition &amp; app version <span class='mut'>— medians</span></h2><div class='card'><table><tr><th>Metric</th>{gh}</tr>{grows}</table></div>"
     def mrow(r):
         bud = next((b for b in budgets if b["metric"] == r["k"]), None)
         cells = "".join(f"<td class='{'over' if bud and v is not None and v > bud['max'] else ''}'>{fmt(r['k'], v)}</td>" for v in r["vals"])
@@ -147,6 +165,7 @@ td.over{{color:var(--high);font-weight:600}}a{{color:var(--acc)}}.ok{{color:#16a
 <h1>MyVerizon App Performance — run comparison</h1><div class="mut">{len(runs)} runs · {e(runs[0].get('device') or '')} · values in red are over budget</div>
 <div class="kpis">{''.join(f"<div class='kpi {t}'><b>{v}</b><span>{l}</span>{f'<em>{s}</em>' if s else ''}</div>" for v, l, s, t in cards)}</div>
 <div class="card take"><h3 style="margin:0 0 4px">Key takeaways</h3><ul>{''.join(f'<li>{t}</li>' for t in take) or '<li>No issues across runs.</li>'}</ul></div>
+{grows}
 <h2>Budgets</h2><div class="card"><table><tr><th>Budget</th><th>Max</th>{head}<th>Median</th><th>p90</th><th>Met</th></tr>
 {''.join(f"<tr><td>{e(b.get('label', b['metric']))}</td><td>{fmt(b['metric'], b['max'])}</td>" + ''.join(f"<td class='{'over' if v is not None and v > b['max'] else ''}'>{fmt(b['metric'], v)}</td>" for v in b['vals']) + f"<td><b>{fmt(b['metric'], b['med'])}</b></td><td>{fmt(b['metric'], b['p90'])}</td><td class='{'ok' if b['n'] and b['passN'] == b['n'] else 'no'}'>{b['passN']}/{b['n']}</td></tr>" for b in brow)}</table></div>
 <h2>Milestones &amp; metrics</h2><div class="card"><table><tr><th>Metric</th>{head}<th>Median</th><th>p90</th><th>Spread</th><th>Budget</th></tr>{''.join(mrow(r) for r in rows)}</table></div>

@@ -17,6 +17,8 @@ Usage:
 """
 import argparse
 import base64
+import hashlib
+import io
 import bisect
 import html
 import json
@@ -895,6 +897,49 @@ def endpoint_key(r):
     return f"{r['method']} {r['host']}{r['path']}" + (f" [{r['op']}]" if r["op"] else "")
 
 
+def deep_findings(F, pacing, uev, pay, imgs, cache, third, periods, R):
+    def add(sev, title, impact, detail, rec, refs=(), t=None, kind=""):
+        F.append({"sev": sev, "title": title, "impact": round(impact, 2), "detail": detail, "rec": rec, "refs": list(refs), "t": t, "kind": kind})
+    if pacing and pacing["hitches"]:
+        w = pacing["worst"]
+        add("med" if w["dur"] >= 0.1 or len(pacing["hitches"]) >= 5 else "low",
+            f"{len(pacing['hitches'])} frame hitch(es) during animation, worst {w['dur']*1000:.0f} ms on “{w['screen']}”", pacing["hitchTime"],
+            f"Total {pacing['hitchTime']*1000:.0f} ms of frozen frames while the screen was moving (capture ~{pacing['fps']} fps). "
+            "Screen-capture can drop frames itself, so treat single short hitches with care.",
+            "Check main-thread work at these moments (layout, image decode, JSON parsing) in the Timeline.", [], w["t"], "hitch")
+    for u in uev:
+        if u["kind"] in ("tap", "drag") and u.get("feedback") is not None and u["feedback"] > 0.15 and not u.get("inferred"):
+            add("med" if u["feedback"] >= 0.3 else "low", f"Tap on “{u['screen']}” got visual feedback after {u['feedback']*1000:.0f} ms",
+                u["feedback"], "Apple's guidance is to acknowledge touches within ~100 ms (e.g. highlight / pressed state).",
+                "Add an immediate pressed/highlight state on the tapped control.", [u["req"]] if u.get("req") is not None else [], u["t"], "feedback")
+    for d in pay["dups"][:3]:
+        if d["wasted"] >= 4096:
+            add("low", f"{d['size']/1024:.1f} KB of identical JSON repeated {d['count']}× across {d['reqs']} response(s)", 0,
+                "; ".join(f"{R[w['id']]['short']} {w['path']}" for w in d["where"][:3]),
+                "Return shared data once (or cache it client-side) instead of repeating it in every response.", [w["id"] for w in d["where"]], None, "dup-json")
+    for row in pay["responses"]:
+        h = row.get("hidden")
+        if h and h["bytes"] >= 4096:
+            add("low", f"{R[row['id']]['short']}: {h['bytes']/1024:.1f} KB of content marked hidden ({h['n']} items)", 0,
+                "Objects with gone/hidden/visible:false are downloaded and parsed but not shown.",
+                "Have the server omit hidden modules, or send them lazily.", [row["id"]], R[row["id"]]["start"], "hidden")
+    for im in imgs:
+        if im.get("webp") and im["bytes"] >= 50000:
+            best = im.get("webpFit") or im["webp"]
+            if best < im["bytes"] * 0.7:
+                add("med" if im["bytes"] - best >= 150000 else "low",
+                    f"Image {R[im['id']]['short']}: {im['bytes']/1024:.0f} KB {im.get('fmt','')} {im.get('w','?')}×{im.get('h','?')} → ~{best/1024:.0f} KB as WebP"
+                    + (" at screen width" if im.get("webpFit") else ""), 0,
+                    f"Re-encoded locally at quality 80{' and resized to the screen width' if im.get('webpFit') else ''}; downloaded {im['count']}×.",
+                    "Serve WebP/AVIF sized for the view from the image service.", [im["id"]], R[im["id"]]["start"], "image-opt")
+    tp = [x for x in third if x["spin"] and not x["vendor"].startswith("Undecrypted")]
+    if tp:
+        n = sum(x["spin"] for x in tp)
+        add("low", f"{n} analytics/telemetry request(s) fired while a spinner was on screen", 0,
+            "; ".join(f"{x['vendor']}: {x['spin']}" for x in tp[:5]),
+            "Defer non-essential analytics until content is shown; they compete for connections and CPU during loading.", [], None, "thirdparty")
+
+
 def build_summary(meta, end_s, reqs, periods, bursts, life, kpi, cold):
     m = {"recording": round(end_s, 2), "spinner_total": kpi["loading"], "spinner_longest": kpi["longest"],
          "api_p50": kpi["apiP50"], "api_p95": kpi["apiP95"], "requests": kpi["requests"], "api_calls": kpi["api"],
@@ -1364,6 +1409,331 @@ def network_gaps(reqs, end_s, periods, screens, bursts, bio, can_eval, logs, mar
     return gaps
 
 
+# ---------------------------------------------------------------- deeper diagnosis
+
+def union_len(iv):
+    t, e = 0.0, -1e9
+    for a, b in sorted(iv):
+        if b > e:
+            t += b - max(a, e)
+            e = b
+    return t
+
+
+def screen_costs(screens, reqs, bursts, periods, end_s):
+    durs = {r["id"]: r["dur"] for r in reqs}
+    global R_dur
+    R_dur = lambda i: durs.get(i, 0)
+    rows = []
+    for i, sc in enumerate(screens):
+        if sc["name"] == "Home screen":
+            continue
+        w0, w1 = sc["start"], (screens[i + 1]["start"] if i + 1 < len(screens) else end_s)
+        rs = [r for r in reqs if r["cat"] != "tunnel" and w0 <= r.get("issued", r["start"]) < w1]
+        api = [r for r in rs if r["cat"] in ("api", "auth")]
+        last = max((b["end"] for b in bursts if w0 <= b["start"] < w1), default=None)
+        slow = max(api, key=lambda r: r["dur"], default=None)
+        rows.append({"name": sc["name"], "start": round(w0, 2), "end": round(w1, 2), "dur": round(w1 - w0, 2), "loading": sc["loading"],
+                     "calls": len(rs), "api": len(api), "analytics": sum(1 for r in rs if r["cat"] == "analytics"),
+                     "logging": sum(1 for r in rs if r["cat"] == "logging"), "images": sum(1 for r in rs if r["cat"] == "image"),
+                     "bytes": sum(r["size"] for r in rs), "apiBytes": sum(r["size"] for r in api),
+                     "netBusy": round(union_len([(r.get("issued", r["start"]), r["end"]) for r in api]), 2),
+                     "spinner": round(sum(overlap(p["start"], p["end"], w0, w1) for p in periods), 2),
+                     "settle": round(last - w0, 2) if last is not None else None, "slowest": slow["id"] if slow else None,
+                     "reqs": [r["id"] for r in api][:20]})
+    merged = []
+    base = lambda n: n.replace(" (loading)", "")
+    for r in rows:
+        if merged and base(merged[-1]["name"]) == base(r["name"]):
+            m = merged[-1]
+            for k in ("calls", "api", "analytics", "logging", "images", "bytes", "apiBytes", "netBusy", "spinner"):
+                m[k] = round(m[k] + r[k], 2)
+            m["end"], m["dur"] = r["end"], round(r["end"] - m["start"], 2)
+            m["loading"] = m["loading"] or r["loading"]
+            if r["settle"] is not None:
+                m["settle"] = round(r["start"] + r["settle"] - m["start"], 2)
+            if r["slowest"] is not None and (m["slowest"] is None or R_dur(r["slowest"]) > R_dur(m["slowest"])):
+                m["slowest"] = r["slowest"]
+            m["reqs"] = (m["reqs"] + r["reqs"])[:20]
+        else:
+            merged.append(dict(r, name=base(r["name"])))
+    for m in merged:
+        if m["settle"] is not None:
+            m["settle"] = min(m["settle"], m["dur"])
+    return merged
+
+
+HIDDEN_KEYS = (("gone", True), ("hidden", True), ("isHidden", True), ("visible", False), ("isVisible", False))
+
+
+def jsize(o):
+    return len(json.dumps(o, separators=(",", ":"), ensure_ascii=False).encode())
+
+
+def payload_analysis(reqs, payloads):
+    rows, index = [], defaultdict(list)
+    for r in reqs:
+        p = payloads[r["id"]] if r["id"] < len(payloads) else None
+        if r["cat"] not in ("api", "auth") or not p or p.get("rsK") not in ("text", "truncated") or not p.get("rsB"):
+            continue
+        try:
+            j = json.loads(p["rsB"])
+        except ValueError:
+            continue
+        total = jsize(j)
+        if total < 2048:
+            continue
+        paths, hidden = [], {"n": 0, "bytes": 0}
+
+        def walk(o, path, depth):
+            sz = jsize(o)
+            if isinstance(o, dict) and any(o.get(k) is v for k, v in HIDDEN_KEYS):
+                hidden["n"] += 1
+                hidden["bytes"] += sz
+            if sz >= 1024 and depth > 0:
+                paths.append((path, sz))
+                index[hashlib.md5(json.dumps(o, sort_keys=True).encode()).hexdigest()].append((r["id"], path, sz))
+            if depth < 5:
+                if isinstance(o, dict):
+                    for k, v in o.items():
+                        walk(v, f"{path}.{k}", depth + 1)
+                elif isinstance(o, list):
+                    for n, v in enumerate(o[:200]):
+                        walk(v, f"{path}[{n}]", depth + 1)
+        walk(j, "$", 0)
+        top = sorted(((k, jsize(v)) for k, v in j.items()), key=lambda x: -x[1])[:8] if isinstance(j, dict) else []
+        deep = sorted((x for x in paths if x[0].count(".") + x[0].count("[") >= 2), key=lambda x: -x[1])
+        keep = []
+        for pth, sz in deep:
+            if not any(pth.startswith(k + ".") or pth.startswith(k + "[") for k, _ in keep):
+                keep.append((pth, sz))
+            if len(keep) >= 6:
+                break
+        rows.append({"id": r["id"], "bytes": total, "wire": r["size"], "top": top, "paths": keep,
+                     "hidden": hidden if hidden["n"] else None})
+    dups, covered = [], set()
+    for h, occ in sorted(index.items(), key=lambda kv: -kv[1][0][2] * (len(kv[1]) - 1)):
+        if len(occ) < 2:
+            continue
+        if all(any(pth.startswith(cp + ".") or pth.startswith(cp + "[") for crid, cp in covered if crid == rid) for rid, pth, _ in occ):
+            continue
+        covered.update((rid, pth) for rid, pth, _ in occ)
+        dups.append({"size": occ[0][2], "count": len(occ), "wasted": occ[0][2] * (len(occ) - 1),
+                     "where": [{"id": rid, "path": pth} for rid, pth, _ in occ[:6]], "reqs": len({rid for rid, _, _ in occ})})
+        if len(dups) >= 12:
+            break
+    return {"responses": sorted(rows, key=lambda x: -x["bytes"]), "dups": dups}
+
+
+def image_analysis(reqs, payloads, screen_w):
+    out, seen = [], set()
+    for r in reqs:
+        if r["cat"] != "image" or r["status"] != 200 or r["url"] in seen:
+            continue
+        seen.add(r["url"])
+        p = payloads[r["id"]] if r["id"] < len(payloads) else None
+        row = {"id": r["id"], "bytes": r["size"], "mime": r["mime"], "count": sum(1 for x in reqs if x["url"] == r["url"] and x["status"] == 200)}
+        if p and p.get("rsK") == "image" and p.get("rsB"):
+            try:
+                im = Image.open(io.BytesIO(base64.b64decode(p["rsB"])))
+                row.update(w=im.width, h=im.height, fmt=im.format, alpha=im.mode in ("RGBA", "LA", "P"))
+                buf = io.BytesIO()
+                im.convert("RGBA" if row["alpha"] else "RGB").save(buf, "WEBP", quality=80, method=4)
+                row["webp"] = buf.tell()
+                if im.width > screen_w:
+                    sc = screen_w / im.width
+                    buf2 = io.BytesIO()
+                    im.convert("RGBA" if row["alpha"] else "RGB").resize((screen_w, max(1, int(im.height * sc)))).save(buf2, "WEBP", quality=80, method=4)
+                    row["webpFit"] = buf2.tell()
+            except Exception:
+                pass
+        out.append(row)
+    return sorted(out, key=lambda x: -x["bytes"])
+
+
+def cache_audit(reqs):
+    groups = defaultdict(list)
+    for r in reqs:
+        if r["method"] == "GET" and r["cat"] != "tunnel" and r["status"] in (200, 304):
+            groups[r["url"]].append(r)
+    rows = []
+    for url, rs in groups.items():
+        n200, n304 = sum(1 for r in rs if r["status"] == 200), sum(1 for r in rs if r["status"] == 304)
+        cc, exp, et = rs[0]["cache"], rs[0]["expires"], rs[0]["etag"]
+        m = re.search(r"max-age=(\d+)", cc or "")
+        maxage = int(m.group(1)) if m else None
+        span = rs[-1]["start"] - rs[0]["start"]
+        issue = fix = ""
+        if n200 >= 2:
+            issue = f"downloaded {n200}× in {span:.1f}s"
+            fix = "De-duplicate in-flight loads and use the HTTP/image cache" + ("" if cc else "; add Cache-Control: max-age")
+        elif n304 >= 2 and maxage and span < maxage:
+            issue = f"revalidated {n304}× within its max-age ({maxage}s)"
+            fix = "Client should reuse the cached copy until max-age expires instead of sending conditional requests"
+        elif n304 >= 2:
+            issue = f"revalidated {n304}× (no max-age)"
+            fix = "Serve an explicit Cache-Control: max-age so the client can skip revalidation"
+        elif rs[0]["cat"] in ("image", "asset") and not cc and not exp:
+            issue = "static resource without Cache-Control/Expires"
+            fix = "Add Cache-Control: public, max-age=…"
+        elif rs[0]["cat"] in ("image", "asset") and re.search(r"no-store|no-cache|max-age=0", cc or ""):
+            issue = f"static resource marked '{cc}'"
+            fix = "Allow caching for static assets"
+        if issue:
+            rows.append({"url": url, "short": rs[0]["short"], "host": rs[0]["host"], "n": len(rs), "n200": n200, "n304": n304,
+                         "bytes": sum(r["size"] for r in rs if r["status"] == 200), "cache": cc, "expires": exp, "etag": bool(et),
+                         "issue": issue, "fix": fix, "ids": [r["id"] for r in rs][:8],
+                         "wasted": sum(r["size"] for r in rs[1:] if r["status"] == 200)})
+    return sorted(rows, key=lambda x: (-x["wasted"], -x["n"]))
+
+
+VENDORS = [("Adobe Analytics / Launch", r"omtrdc|adobedtm|demdex|adobedc|everesttech"), ("Quantum Metric", r"quantummetric"),
+           ("New Relic", r"newrelic|nr-data"), ("Google Firebase", r"firebase|crashlytics|app-measurement|googleapis"),
+           ("Google Analytics", r"app-analytics-services|google-analytics|googletagmanager"), ("Apple", r"apple\.com|icloud"),
+           ("Other analytics", r".")]
+VENDOR_LOG = {"Quantum Metric": r"Quantum ?Metric|QMetric", "Google Firebase": r"Firebase|FIR[A-Z]|fireperf|Crashlytics",
+              "New Relic": r"NewRelic|New Relic|NRMA", "Adobe Analytics / Launch": r"\bAEP|Adobe|ACPCore"}
+
+
+def vendor_of(host):
+    for name, rx in VENDORS:
+        if re.search(rx, host, re.I):
+            return name
+    return "Other analytics"
+
+
+def third_party(reqs, periods, logs):
+    spin = [(p["start"], p["end"]) for p in periods]
+    in_spin = lambda r: any(overlap(a, b, r["start"], r["end"]) > 0 for a, b in spin)
+    rows = defaultdict(lambda: {"reqs": 0, "spin": 0, "bytes": 0, "sent": 0, "tunnels": 0, "hosts": set(), "busy": [], "logs": 0, "logsSpin": 0})
+    for r in reqs:
+        if r["cat"] == "logging":
+            v = "First-party telemetry (" + r["short"] + ")"
+        elif r["cat"] == "analytics" or (r["cat"] == "tunnel" and ANALYTICS.search(r["host"])):
+            v = vendor_of(r["host"])
+        elif r["cat"] == "tunnel":
+            v = vendor_of(r["host"]) if vendor_of(r["host"]) != "Other analytics" else "Undecrypted (" + r["host"] + ")"
+        else:
+            continue
+        x = rows[v]
+        x["reqs"] += 1
+        x["hosts"].add(r["host"])
+        x["tunnels"] += r["cat"] == "tunnel"
+        x["bytes"] += r["size"]
+        x["sent"] += r["reqSize"]
+        if in_spin(r):
+            x["spin"] += 1
+            if r["cat"] != "tunnel":
+                x["busy"] += [(max(r["start"], a), min(r["end"], b)) for a, b in spin if overlap(a, b, r["start"], r["end"]) > 0]
+    for name, rx in VENDOR_LOG.items():
+        n = [l for l in logs if l["src"] == "app" and re.search(rx, l["msg"])]
+        if n:
+            rows[name]["logs"] = len(n)
+            rows[name]["logsSpin"] = sum(1 for l in n if any(a <= l["t"] <= b for a, b in spin))
+    out = []
+    for v, x in rows.items():
+        out.append({"vendor": v, "reqs": x["reqs"], "spin": x["spin"], "bytes": x["bytes"], "sent": x["sent"], "tunnels": x["tunnels"],
+                    "hosts": sorted(x["hosts"]), "spinBusy": round(union_len(x["busy"]), 2), "logs": x["logs"], "logsSpin": x["logsSpin"]})
+    return sorted(out, key=lambda x: (-x["spin"], -x["reqs"]))
+
+
+def frame_pacing(session, meta, screens, uev, launch_t=None, top_frac=0.06):
+    """Native-rate frame analysis: hitches (repeated frames inside motion) and tap → first visual feedback."""
+    video = os.path.join(session, meta["video"])
+    pr = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "frame=pts_time", "-of", "csv=p=0", video],
+                        capture_output=True, text=True)
+    pts = []
+    for x in pr.stdout.split():
+        try:
+            pts.append(float(x.split(",")[0]))
+        except ValueError:
+            pass
+    if len(pts) < 10:
+        return None
+    W, H = 144, 312
+    proc = subprocess.Popen(["ffmpeg", "-v", "error", "-i", video, "-fps_mode", "passthrough", "-vf", f"scale={W}:{H},format=gray",
+                             "-f", "rawvideo", "-"], stdout=subprocess.PIPE)
+    n, prev, diffs, top = W * H, None, [], int(H * top_frac)
+    while True:
+        b = proc.stdout.read(n)
+        if len(b) < n:
+            break
+        f = np.frombuffer(b, np.uint8).reshape(H, W).astype(np.int16)[top:]
+        diffs.append(0.0 if prev is None else float((np.abs(f - prev) > 8).mean()))
+        prev = f
+    proc.wait()
+    k = min(len(pts), len(diffs))
+    pts, diffs = pts[:k], diffs[:k]
+    dts = [pts[i] - pts[i - 1] for i in range(1, k)]
+    med = statistics.median(dts) if dts else 1 / 60
+    MOV = 0.002
+    moving = [d > MOV for d in diffs]
+    hitches, i = [], 1
+    while i < k:
+        # run of (near-)identical frames bracketed by motion within 0.25s on both sides
+        if not moving[i] and moving[i - 1]:
+            j = i
+            while j < k and not moving[j] and diffs[j] < 0.0003:
+                j += 1
+            if j < k and moving[j] and pts[j] - pts[i - 1] <= 0.35:
+                dur = pts[j] - pts[i - 1]
+                if dur >= 3 * med and dur >= 0.045:
+                    hitches.append({"t": round(pts[i - 1], 3), "dur": round(dur, 3), "frames": j - i})
+            i = j + 1
+            continue
+        if moving[i] and i > 0 and pts[i] - pts[i - 1] >= max(0.05, 3 * med) and (i + 1 < k and moving[i + 1]):
+            hitches.append({"t": round(pts[i - 1], 3), "dur": round(pts[i] - pts[i - 1], 3), "frames": 0, "gap": True})
+        i += 1
+    mt = sum(dts[i - 1] for i in range(1, k) if moving[i])
+    mf = sum(1 for i in range(1, k) if moving[i])
+    at = lambda t: next((x["name"] for x in screens if x["start"] - 0.05 <= t < x["end"] + 0.05), "")
+    for h in hitches:
+        h["screen"] = at(h["t"])
+    # iOS's own launch zoom / home-screen animation is not the app
+    hitches = [h for h in hitches if h["screen"] not in ("", "Home screen") and (launch_t is None or h["t"] > launch_t + 1.0)]
+    for u in uev:
+        if u["kind"] in ("tap", "drag", "launch"):
+            j = next((i for i in range(k) if pts[i] > u["t"] + 0.008 and diffs[i] > 0.0003), None)
+            if j is not None and pts[j] - u["t"] <= 3:
+                u["feedback"] = round(pts[j] - u["t"], 3)
+    return {"frames": k, "fps": round(1 / med, 1) if med else None, "motionFps": round(mf / mt, 1) if mt else None,
+            "motionTime": round(mt, 2), "hitches": hitches, "hitchTime": round(sum(h["dur"] for h in hitches), 3),
+            "worst": max(hitches, key=lambda h: h["dur"]) if hitches else None}
+
+
+RESUME_BG = re.compile(r"applicationDidEnterBackground|sceneDidEnterBackground|didEnterBackground")
+RESUME_FG = re.compile(r"applicationWillEnterForeground|sceneWillEnterForeground|willEnterForeground")
+
+
+def resumes(logs, reqs, bursts, periods, screens):
+    out, bg = [], None
+    for l in logs:
+        if l["src"] != "app":
+            continue
+        if RESUME_BG.search(l["msg"]):
+            bg = l["t"]
+        elif RESUME_FG.search(l["msg"]) and (bg is not None) and (not out or l["t"] - out[-1]["t"] > 1):
+            t = l["t"]
+            fr = min((r for r in reqs if r["cat"] in ("api", "auth") and r.get("issued", r["start"]) >= t), key=lambda r: r.get("issued", r["start"]), default=None)
+            sp = next((p for p in periods if p["start"] >= t - 0.2 and p["start"] <= t + 3), None)
+            settle = max((b["end"] for b in bursts if t <= b["start"] <= t + 8), default=None)
+            out.append({"t": round(t, 2), "background": round(t - bg, 2), "firstApi": round(fr.get("issued", fr["start"]) - t, 2) if fr else None,
+                        "firstApiId": fr["id"] if fr else None, "spinner": sp["dur"] if sp else 0, "settle": round(settle - t, 2) if settle else None,
+                        "screen": next((x["name"] for x in screens if x["start"] <= t + 0.5 < x["end"]), "")})
+            bg = None
+    return out
+
+
+def app_build(payloads):
+    for p in payloads:
+        b = (p or {}).get("rqB") or ""
+        m = re.search(r'"appVersion"\s*:\s*"([^"]+)"', b)
+        if m:
+            g = lambda k: (re.search(rf'"{k}"\s*:\s*"([^"]+)"', b) or [None, None])[1]
+            return {"appVersion": m.group(1), "build": g("buildVersion"), "os": g("osVersion"), "device": g("deviceModel") or g("model")}
+    return {}
+
+
 def log_hist(ts, end_s, step=0.25):
     h = [0] * (int(end_s / step) + 1)
     for t in ts:
@@ -1461,6 +1831,20 @@ def main():
         p["threads"] = thread_summary(threads, p["start"], p["end"])
     gaps = network_gaps(reqs, end_s, periods, screens, bursts, bio_iv, can_eval, logs, markers, threads)
     uev = user_events(logs, bio_iv, life, bursts, screens, reqs, launch_t)
+    print("Analyzing frame pacing...")
+    pacing = frame_pacing(S, meta, screens, uev, launch_t)
+    scost = screen_costs(screens, reqs, bursts, periods, end_s)
+    pay = payload_analysis(reqs, payloads)
+    imgs = image_analysis(reqs, payloads, meta.get("width") or 1206)
+    cache = cache_audit(reqs)
+    third = third_party(reqs, periods, logs)
+    res = resumes(logs, reqs, bursts, periods, screens)
+    try:
+        cond = json.load(open(os.path.join(S, "conditions.json")))
+    except (OSError, ValueError):
+        cond = {}
+    build = app_build(payloads)
+    deep_findings(findings, pacing, uev, pay, imgs, cache, third, periods, R)
     for e in uev:
         if e["kind"] in ("tap", "drag") and e.get("screenAfter") is not None and e["screenAfter"] >= 1.0 and not e.get("inferred"):
             findings.append({"sev": "med" if e["screenAfter"] >= 2 else "low", "title": f"Screen responded {e['screenAfter']:.2f}s after a tap on “{e['screen']}”",
@@ -1519,6 +1903,16 @@ def main():
         h["ttfb50"] = round(pct([r["ph"]["ttfb"] for r in rs], 50), 2) if rs else None
     host_rows.sort(key=lambda x: -x["n"])
     summary = build_summary(meta, end_s, reqs, periods, bursts, life, kpi, cold)
+    summary["condition"], summary["build"] = cond.get("network") or "default", build
+    if pacing:
+        summary["metrics"]["hitch_count"] = len(pacing["hitches"])
+        summary["metrics"]["hitch_ms"] = round(pacing["hitchTime"] * 1000)
+    taps = [u["feedback"] for u in uev if u["kind"] == "tap" and u.get("feedback") is not None and not u.get("inferred")]
+    if taps:
+        summary["metrics"]["tap_feedback_max"] = max(taps)
+    for r_ in res:
+        summary["metrics"].setdefault("resume_first_api", r_["firstApi"])
+        summary["metrics"].setdefault("resume_settle", r_["settle"])
     budgets = eval_budgets(load_budgets(a.budgets), summary["metrics"])
     summary["budgets"] = budgets
     with open(os.path.join(S, "summary.json"), "w") as f:
@@ -1534,6 +1928,8 @@ def main():
         "errT": [l["t"] for l in logs if l["lvl"] in ("Error", "Fault")],
         "devices": {k or "mac": v for k, v in devices.items()}, "end": end_s,
         "bio": bio_iv, "taskInfo": taskinfo, "screens": screens, "gaps": gaps, "uev": uev,
+        "pacing": pacing, "screenCost": scost, "payload": pay, "images": imgs, "cacheAudit": cache, "thirdParty": third,
+        "resumes": res, "cond": cond, "build": build,
         "threads": ({"main": threads["main"], "n": threads["threads"], "cats": threads["cats"], "bins": threads["bins"], "step": threads["step"],
                      "mainEvents": [{k: x[k] for k in ("t", "lib", "cat", "msg")} for x in threads["events"] if x["main"]][:3000],
                      "total": len(threads["events"]), "mainTotal": sum(1 for x in threads["events"] if x["main"])} if threads else None), "savings": savings(periods, bursts, R, reqs), "budgets": budgets, "cold": cold,
@@ -1629,8 +2025,8 @@ pre.body{background:var(--bg);border:1px solid var(--line);border-radius:8px;pad
 .jk{color:#9333ea}.js{color:#059669}.jn{color:#2563eb}.jb{color:#d97706}
 .thumb{width:56px;border-radius:5px;border:1px solid var(--line);cursor:pointer}
 </style></head><body>
-<header><div class="hd"><h1 id="h1"></h1><div class="mut" id="sub"></div></div>
-<nav id="tabs"><a data-tab="overview">Overview</a><a data-tab="cold">Cold start <span class="cnt" id="c-cold"></span></a><a data-tab="loading">Loading periods <span class="cnt" id="c-loading"></span></a><a data-tab="render">Render milestones <span class="cnt" id="c-render"></span></a><a data-tab="lifecycle">App lifecycle</a><a data-tab="timeline">Timeline</a><a data-tab="hosts">Hosts <span class="cnt" id="c-hosts"></span></a><a data-tab="requests">Requests <span class="cnt" id="c-requests"></span></a><a data-tab="logs">Device log <span class="cnt" id="c-logs"></span></a></nav></header>
+<header><div class="hd"><h1 id="h1"></h1><div class="mut" id="sub"></div><div id="hdtags" style="margin-top:4px"></div></div>
+<nav id="tabs"><a data-tab="overview">Overview</a><a data-tab="cold">Cold start <span class="cnt" id="c-cold"></span></a><a data-tab="loading">Loading periods <span class="cnt" id="c-loading"></span></a><a data-tab="render">Render milestones <span class="cnt" id="c-render"></span></a><a data-tab="screens">Screens <span class="cnt" id="c-screens"></span></a><a data-tab="efficiency">Efficiency <span class="cnt" id="c-eff"></span></a><a data-tab="lifecycle">App lifecycle</a><a data-tab="timeline">Timeline</a><a data-tab="hosts">Hosts <span class="cnt" id="c-hosts"></span></a><a data-tab="requests">Requests <span class="cnt" id="c-requests"></span></a><a data-tab="logs">Device log <span class="cnt" id="c-logs"></span></a></nav></header>
 <main>
 <section data-tab="overview"><div class="kpis" id="kpis"></div>
 <div class="ovgrid"><div class="card" id="ov-spin"></div><div class="card" id="ov-cold"></div></div>
@@ -1639,7 +2035,9 @@ pre.body{background:var(--bg);border:1px solid var(--line);border-radius:8px;pad
 <div class="ovgrid"><div class="card" id="savings"></div><div class="card" id="ov-ep"></div></div></section>
 <section data-tab="cold"><h2>Cold start <span class="mut">— from tapping the app icon to the first usable screen</span></h2><div class="sum" id="s-cold"></div><div id="coldsec"></div></section>
 <section data-tab="loading"><h2>Loading periods <span class="mut">— spinner/progress indicator detected on screen, and the request chain that kept it there</span></h2><div class="sum" id="s-loading"></div><div id="periods"></div></section>
-<section data-tab="render"><h2>Render milestones <span class="mut">— screen changes and the response that preceded them</span></h2><div class="sum" id="s-render"></div><div class="card"><table id="bursts"></table></div></section>
+<section data-tab="render"><h2>Render milestones <span class="mut">— screen changes and the response that preceded them</span></h2><div class="sum" id="s-render"></div><div id="smooth"></div><div class="card"><table id="bursts"></table></div></section>
+<section data-tab="screens"><h2>Cost per screen <span class="mut">— everything started while each screen was shown (until the next screen appears)</span></h2><div class="sum" id="s-screens"></div><div class="card"><table id="scost"></table></div></section>
+<section data-tab="efficiency"><h2>Efficiency <span class="mut">— payloads, images, caching and third-party cost</span></h2><div class="sum" id="s-efficiency"></div><div id="effsec"></div></section>
 <section data-tab="lifecycle"><h2>App lifecycle &amp; instrumentation <span class="mut">— from the device log</span></h2><div class="sum" id="s-lifecycle"></div><div id="lifesec"></div></section>
 <section data-tab="timeline"><h2>Timeline</h2><div class="sum" id="s-timeline"></div>
 <div class="ctl"><label>Zoom <input type="range" id="zoom" min="8" max="200" value="40"></label>
@@ -2022,6 +2420,55 @@ if(D.cold){const C=D.cold,ph=C.phases;$('#c-cold').textContent=s2(C.total);
   <h4 style="margin:8px 0 2px">Log volume</h4><div style="font-size:12px">${p.log.lines.toLocaleString()} lines · ${p.log.errors} errors · ${p.log.subs.map(([k,v])=>esc(k)+' '+v).join(', ')}</div></div></div>
   ${threadPanel(p.log.threads)}</div>`).join('');
  $('#coldsec').innerHTML=j}
+// header tags + annotated video link
+{const b=D.build||{},c=D.cond||{},t=[];if(b.appVersion)t.push(`app ${esc(b.appVersion)}${b.build?' ('+esc(b.build)+')':''}`);if(b.os)t.push('iOS '+esc(b.os));
+ t.push('network: '+esc(c.network||'default')+(c.proxyThrottling?' (throttled)':''));
+ $('#hdtags').innerHTML=t.map(x=>`<span class="pill" style="background:#475569">${x}</span>`).join(' ')+` <span id="annlink"></span><video src="annotated.mp4" preload="metadata" style="display:none" onloadedmetadata="$('#annlink').innerHTML='<a class=&quot;j&quot; href=&quot;annotated.mp4&quot; target=&quot;_blank&quot;>▶ Annotated video</a>'"></video>`}
+// screens tab
+{const C=D.screenCost||[];$('#c-screens').textContent=C.length||'';
+ const top=[...C].sort((a,b)=>b.dur-a.dur)[0],heavy=[...C].sort((a,b)=>b.bytes-a.bytes)[0],chat=[...C].sort((a,b)=>b.analytics-a.analytics)[0];
+ summ('screens',[kc(C.length,'Screens'),kc(top?s2(top.dur):'—','Longest on screen',top?esc(top.name):''),kc(heavy?fb(heavy.bytes):'—','Heaviest screen',heavy?esc(heavy.name):''),
+  kc(sum(C.map(x=>x.api)),'API calls',''),kc(chat?chat.analytics:0,'Most analytics calls',chat?esc(chat.name):'',chat&&chat.analytics>=10?'warn':''),kc(s2(sum(C.map(x=>x.spinner))),'Spinner time','across screens',sum(C.map(x=>x.spinner))>=5?'bad':'')],
+  C.filter(x=>x.api).sort((a,b)=>b.netBusy-a.netBusy).slice(0,3).map(x=>`<b>${esc(x.name)}</b>: ${x.api} API calls, ${fb(x.apiBytes)}, ${s2(x.netBusy)} of network time${x.spinner?`, spinner ${s2(x.spinner)}`:''}${x.slowest!=null?` — slowest ${reqLink(x.slowest)} ${s2(R[x.slowest].dur)}`:''}`));
+ const mx=Math.max(0.01,...C.map(x=>x.dur));
+ $('#scost').innerHTML='<tr><th>Screen</th><th>On screen</th><th></th><th>API</th><th>Analytics</th><th>Logging</th><th>Images</th><th>Received</th><th>Network time</th><th>Spinner</th><th>Settled</th><th>Slowest call</th></tr>'+
+  C.map(x=>`<tr><td><img class="thumb" src="${thumbAt(x.start+Math.min(0.6,x.dur/2))}" onclick="seek(${x.start})"> <b>${esc(x.name)}</b><div class="mut mono">${fmtT(x.start)} → ${fmtT(x.end)}</div></td><td><b>${s2(x.dur)}</b></td>
+  <td style="width:140px"><div class="bar" style="height:10px;margin:0"><div style="width:${x.dur/mx*100}%;background:${x.spinner?'var(--busy)':'var(--change)'}"></div></div></td><td>${x.api}</td><td>${x.analytics}</td><td>${x.logging}</td><td>${x.images}</td><td>${fb(x.bytes)}</td><td>${s2(x.netBusy)}</td>
+  <td style="color:${x.spinner>=2?'var(--high)':'inherit'}">${x.spinner?s2(x.spinner):''}</td><td>${x.settle!=null?s2(x.settle):''}</td><td>${x.slowest!=null?reqLink(x.slowest)+' '+s2(R[x.slowest].dur):''}</td></tr>`).join('')}
+// efficiency tab
+{const P=D.payload||{responses:[],dups:[]},I=D.images||[],CA=D.cacheAudit||[],T=D.thirdParty||[];
+ const hid=sum(P.responses.map(r=>r.hidden?r.hidden.bytes:0)),dupw=sum(P.dups.map(d=>d.wasted)),imgSave=sum(I.map(x=>x.webp?Math.max(0,x.bytes-(x.webpFit||x.webp)):0)),spinTP=sum(T.filter(x=>!x.vendor.startsWith('Undecrypted')).map(x=>x.spin));
+ $('#c-eff').textContent=(CA.length+P.dups.length)||'';
+ summ('efficiency',[kc(P.responses.length?fb(P.responses[0].bytes):'—','Largest JSON response',P.responses.length?esc(R[P.responses[0].id].short):''),kc(fb(dupw),'Repeated JSON','identical subtrees sent more than once',dupw>=8192?'warn':''),
+  kc(fb(hid),'Hidden content','downloaded but marked gone/hidden',hid>=4096?'warn':''),kc(fb(imgSave),'Image savings (WebP)',I.length+' image(s) analysed',imgSave>=100000?'warn':''),
+  kc(CA.length,'Cache issues','',CA.length?'warn':''),kc(spinTP,'Analytics calls during spinners','',spinTP>=10?'warn':'')],
+  [...P.responses.slice(0,2).map(r=>`${reqLink(r.id)} ${fb(r.bytes)}: biggest parts ${r.top.slice(0,3).map(([k,v])=>`<span class="mono">${esc(k)}</span> ${fb(v)}`).join(', ')}`),
+   ...(CA[0]?[`<span class="mono">${esc(CA[0].short)}</span> ${esc(CA[0].issue)}`]:[]),
+   ...(T[0]?[`${esc(T[0].vendor)}: ${T[0].reqs} requests, ${T[0].spin} during spinners${T[0].logs?`, ${T[0].logs.toLocaleString()} app log lines`:''}`]:[])]);
+ const pbar=(r)=>{const tot=r.bytes||1,cl=['#2563eb','#7c3aed','#0d9488','#d97706','#ef4444','#64748b','#0891b2','#a3a3a3'];return `<div class="bar" style="height:16px">${r.top.map(([k,v],i)=>`<div title="${esc(k)} ${fb(v)}" style="width:${v/tot*100}%;background:${cl[i%8]}">${esc(k)}</div>`).join('')}</div>`};
+ let h=`<div class="card"><h3>Largest JSON responses <span class="mut" style="font-weight:400">— where the bytes go (top-level keys)</span></h3><table><tr><th>Response</th><th>JSON</th><th>Breakdown</th><th>Largest nested parts</th><th>Hidden</th></tr>`+
+  P.responses.slice(0,8).map(r=>`<tr><td>${reqLink(r.id)}<div class="mut mono">${fmtT(R[r.id].start)}</div></td><td><b>${fb(r.bytes)}</b><div class="mut">${fb(r.wire)} decoded</div></td><td style="min-width:260px">${pbar(r)}</td>
+  <td class="mono" style="font-size:11px">${r.paths.slice(0,4).map(([p,z])=>`${esc(p.length>48?'…'+p.slice(-47):p)} <b>${fb(z)}</b>`).join('<br>')}</td><td>${r.hidden?`${fb(r.hidden.bytes)} <span class="mut">(${r.hidden.n})</span>`:''}</td></tr>`).join('')+'</table></div>';
+ if(P.dups.length)h+=`<div class="card"><h3>Repeated JSON <span class="mut" style="font-weight:400">— identical data sent more than once</span></h3><table><tr><th>Size</th><th>Times</th><th>Wasted</th><th>Where</th></tr>`+P.dups.map(d=>`<tr><td>${fb(d.size)}</td><td>${d.count}×</td><td><b>${fb(d.wasted)}</b></td><td class="mono" style="font-size:11px">${d.where.map(w=>`${reqLink(w.id)} ${esc(w.path)}`).join('<br>')}</td></tr>`).join('')+'</table></div>';
+ if(I.length)h+=`<div class="card"><h3>Images <span class="mut" style="font-weight:400">— actual pixels vs screen width (${D.meta.width||1206}px) and a real WebP re-encode at q80</span></h3><table><tr><th>Image</th><th>Format</th><th>Pixels</th><th>Size</th><th>As WebP</th><th>WebP at screen width</th><th>Downloaded</th></tr>`+
+  I.map(x=>`<tr><td>${reqLink(x.id)}</td><td>${esc(x.fmt||x.mime)}${x.alpha?' (alpha)':''}</td><td>${x.w?x.w+'×'+x.h:'—'}${x.w>(D.meta.width||1206)?' <b style="color:var(--high)">oversized</b>':''}</td><td><b>${fb(x.bytes)}</b></td><td>${x.webp?fb(x.webp)+` <span class="mut">(−${Math.round((1-x.webp/x.bytes)*100)}%)</span>`:'—'}</td><td>${x.webpFit?fb(x.webpFit):''}</td><td>${x.count}×</td></tr>`).join('')+'</table></div>';
+ h+=`<div class="card"><h3>Cache audit</h3>`+(CA.length?`<table><tr><th>Resource</th><th>Issue</th><th>200 / 304</th><th>Cache-Control</th><th>Wasted</th><th>Fix</th></tr>`+CA.map(x=>`<tr><td class="mono" style="font-size:11px">${x.ids.length?reqLink(x.ids[0]):esc(x.short)}<div class="mut">${esc(x.host)}</div></td><td><b>${esc(x.issue)}</b></td><td>${x.n200} / ${x.n304}</td><td class="mono" style="font-size:11px">${esc(x.cache||'(none)')}${x.etag?' · ETag':''}</td><td>${x.wasted?fb(x.wasted):''}</td><td class="mut">${esc(x.fix)}</td></tr>`).join('')+'</table>':'<div class="mut">No caching issues detected.</div>')+'</div>';
+ const mt=Math.max(1,...T.map(x=>x.reqs));
+ h+=`<div class="card"><h3>Third-party &amp; telemetry <span class="mut" style="font-weight:400">— cost overall and while a spinner was on screen</span></h3><table><tr><th>Vendor</th><th>Requests</th><th></th><th>During spinner</th><th>In flight during spinner</th><th>Received / sent</th><th>Undecrypted</th><th>App log lines (during spinner)</th></tr>`+
+  T.map(x=>`<tr><td><b>${esc(x.vendor)}</b><div class="mut mono" style="font-size:11px">${x.hosts.slice(0,3).map(esc).join(', ')}</div></td><td>${x.reqs}</td><td style="width:120px"><div class="bar" style="height:10px;margin:0"><div style="width:${x.reqs/mt*100}%;background:var(--analytics)"></div><div style="width:${x.spin/mt*100}%;background:var(--busy)"></div></div></td>
+  <td style="color:${x.spin>=5?'var(--med)':'inherit'}"><b>${x.spin}</b></td><td>${x.spinBusy?s2(x.spinBusy):''}</td><td>${fb(x.bytes)} / ${fb(x.sent)}</td><td>${x.tunnels||''}</td><td>${x.logs?x.logs.toLocaleString()+' ('+x.logsSpin.toLocaleString()+')':''}</td></tr>`).join('')+'</table></div>';
+ $('#effsec').innerHTML=h}
+// smoothness (render tab)
+{const P=D.pacing,taps=(D.uev||[]).filter(u=>u.feedback!=null);if(P||taps.length){
+ $('#smooth').innerHTML=`<div class="kpis">${P?kc(P.motionFps?P.motionFps+' fps':'—','Frame rate while moving',`capture ${P.fps} fps · ${s2(P.motionTime)} of motion`,P.motionFps&&P.motionFps<50?'warn':'')+kc(P.hitches.length,'Frame hitches','repeated frames during motion',P.hitches.length?'warn':'')+kc(P.hitchTime?msf(P.hitchTime):'0 ms','Frozen-frame time','',P.hitchTime>=0.1?'bad':''):''}
+  ${taps.map(u=>kc(msf(u.feedback),`${u.kind=='launch'?'Launch':'Tap'} → first visual feedback`,esc(u.screen||''),u.feedback>=0.3?'bad':u.feedback>0.1?'warn':'')).join('')}</div>
+  ${P&&P.hitches.length?`<div class="card"><h3>Hitches</h3><table><tr><th>When</th><th>Frozen</th><th>Screen</th></tr>${P.hitches.map(h=>`<tr><td><a class="j mono" onclick="seek(${h.t})">${fmtT(h.t)}</a></td><td><b>${msf(h.dur)}</b></td><td>${esc(h.screen)}</td></tr>`).join('')}</table></div>`:''}
+  <div class="mut" style="font-size:12px;margin:4px 0 8px">Feedback = first visible pixel change after the touch (pressed state, highlight or navigation). Apple recommends acknowledging a touch within ~100 ms. Smoothness is measured from the ${P?P.fps:'—'} fps screen capture; capture can drop frames, so single short hitches are indicative.</div>`}}
+// resume (cold tab)
+{const RS=D.resumes||[];const el=document.createElement('div');el.className='card';
+ el.innerHTML=`<h3>Warm start / resume <span class="mut" style="font-weight:400">— app brought back from the background</span></h3>`+(RS.length?`<table><tr><th>Resumed</th><th>In background</th><th>First API call</th><th>Spinner</th><th>Screen settled</th><th>Screen</th></tr>${RS.map(r=>`<tr><td><a class="j mono" onclick="seek(${r.t})">${fmtT(r.t)}</a></td><td>${s2(r.background)}</td><td>${r.firstApi!=null?'+'+s2(r.firstApi)+' '+reqLink(r.firstApiId):'none'}</td><td>${r.spinner?s2(r.spinner):''}</td><td>${r.settle!=null?'+'+s2(r.settle):''}</td><td>${esc(r.screen)}</td></tr>`).join('')}</table>`
+  :'<div class="mut">No resume in this recording. To measure one: during a capture, go to the home screen, wait a few seconds (or longer for a "cold-ish" resume), then reopen the app.</div>');
+ $('#coldsec').after(el)}
 // tabs
 const has={lifecycle:!!D.logsTotal,logs:!!D.logsTotal,cold:!!D.cold};
 const WHY={cold:'No app launch in this recording',lifecycle:'No device log captured for this run',logs:'No device log captured for this run'};
