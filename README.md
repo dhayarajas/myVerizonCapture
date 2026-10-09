@@ -38,12 +38,21 @@ Options: `NETWORK="3G" ./capture.sh` switches Proxyman's Network Conditions tool
 ./compare.sh                                  # all sessions -> captures/comparison.html
 ./compare.sh captures/session-A captures/session-B
 ./pull_threads.sh captures/session-<ts>       # re-pull thread data (the phone keeps it for a limited time)
-./annotate.sh                                 # annotated.mp4 for the newest session (recording + live panel + history)
+./annotate.sh                                 # annotated.mp4 + annotated-1080p.mp4 for the newest session
 ./annotate.sh captures/session-<ts>           # … for a specific session
+./annotate.sh --compare captures/session-A captures/session-B   # side-by-side video aligned at launch
 ANNOTATE=1 ./report.sh captures/session-<ts>  # rebuild the report and the annotated video together
 python3 publish_reports.py                    # copy reports into reports/ for committing (--redact for a shareable copy)
 NO_OPEN=1 ./report.sh                         # don't open the browser
 ```
+
+## Annotated video
+Three panels — the recording (tap/Face ID flashes, spinner / no-network chips, speed labels), a live panel (clock,
+screen, cold-start progress, what is **blocking the screen now** with its fix and estimated saving, key findings so
+far) and history (rolling 15 s waterfall with the critical path outlined, event log). Idle stretches play at 4×,
+taps / Face ID / request fan-out at 0.5× (the clock always shows real time). Starts with a KPI intro card, ends with a
+"what to fix first" summary; per-screen chapters and an events subtitle track are embedded. Exported at 2320×1304
+and 1920×1080. `--compare` renders two runs side by side, aligned at launch, with milestone deltas.
 
 ## Report tabs
 Every tab starts with summary cards and key takeaways; details follow.

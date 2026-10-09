@@ -136,7 +136,7 @@ def publish_full(session):
     dst = os.path.join(OUT, name)
     shutil.rmtree(dst, ignore_errors=True)
     os.makedirs(dst)
-    for f in ("report.html", "report-payloads.js", "report-logs.js", "screen.mp4", "annotated.mp4", "summary.json", "session.json"):
+    for f in ("report.html", "report-payloads.js", "report-logs.js", "screen.mp4", "annotated.mp4", "annotated-1080p.mp4", "summary.json", "session.json"):
         if os.path.exists(os.path.join(session, f)):
             shutil.copy2(os.path.join(session, f), dst)
     shutil.copytree(os.path.join(session, "thumbs"), os.path.join(dst, "thumbs"))
@@ -184,6 +184,9 @@ def main():
     for s in sessions:
         (publish if redact else publish_full)(s)
     os.makedirs(OUT, exist_ok=True)
+    cv = os.path.join(TOOL, "captures", "comparison.mp4")
+    if not redact and os.path.exists(cv):
+        shutil.copy2(cv, os.path.join(OUT, "comparison.mp4"))
     subprocess.run([sys.executable, os.path.join(TOOL, "compare_runs.py"), *[os.path.join(OUT, os.path.basename(s.rstrip("/"))) for s in sessions],
                     "-o", os.path.join(OUT, "comparison.html")], check=False)
 
