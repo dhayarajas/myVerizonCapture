@@ -1642,6 +1642,7 @@ pre.body{background:var(--bg);border:1px solid var(--line);border-radius:8px;pad
 <section data-tab="timeline"><h2>Timeline</h2><div class="sum" id="s-timeline"></div>
 <div class="ctl"><label>Zoom <input type="range" id="zoom" min="8" max="200" value="40"></label>
 <span id="cats"></span><span class="mut">Hover the timeline to preview the screen; click a bar for details.</span></div>
+<div class="ctl"><span style="font-size:12px">📏 <span id="measR"></span></span></div>
 <div class="legend" id="leg"></div>
 <div id="tl"><div id="tlL"></div><div id="tlR"></div></div></section>
 <section data-tab="hosts"><h2>Hosts</h2><div class="sum" id="s-hosts"></div><div class="card"><table id="hosts"></table></div></section>
@@ -1658,6 +1659,9 @@ const $=s=>document.querySelector(s),R=D.reqs,esc=s=>String(s??'').replace(/[&<>
 const CAT=['api','auth','image','asset','logging','analytics','tunnel'],col=c=>`var(--${c})`;
 const fb=n=>n>=1048576?(n/1048576).toFixed(2)+' MB':n>=1024?(n/1024).toFixed(1)+' KB':n+' B';
 const s2=t=>(+t).toFixed(2)+'s';
+const fmtT=t=>{t=Math.max(0,+t);const ms=Math.round(t*1000),m=Math.floor(ms/60000),sec=Math.floor(ms/1000)%60,r=ms%1000;return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(r).padStart(3,'0')}`};
+const fmtD=d=>{const a=Math.abs(d);return (d<0?'−':'')+(a<1?(a*1000).toFixed(0)+' ms':a.toFixed(3)+' s')};
+const MEAS={a:null,b:null};let TL=null;
 const thumbAt=(t,after)=>{let b=null;for(const [tt,n] of D.thumbs){if(after?tt>=t:tt<=t+1e-6){b=n;if(after)break}else if(!after)break}
   if(!b)b=D.thumbs[after?D.thumbs.length-1:0][1];return D.thumbBase+'/'+b};
 const reqLink=id=>{const r=R[id];return `<a class="j" onclick="openReq(${id})">${esc(r.method)} ${esc(r.short)}${r.op?' ['+esc(r.op)+']':''}</a>`};
@@ -1741,7 +1745,7 @@ $('#leg').innerHTML='<span><i style="background:var(--busy)"></i>loading indicat
 const crit=new Set();[...D.periods,...D.bursts].forEach(p=>(p.chain||[]).forEach(c=>c.kind=='req'&&crit.add(c.id)));
 $('#zoom').oninput=draw;
 function draw(){const pxs=+$('#zoom').value,W=Math.ceil(D.end*pxs)+40,X=t=>t*pxs+4,FH=96,RH=15;
- const rows=R.filter(r=>on.has(r.cat));const lanes=[['Screen',FH],['Screens',RH+4],['Screen state',RH],['Loading / render',RH]];if((D.uev||[]).length)lanes.push(['User events',RH+8]);if((D.gaps||[]).length)lanes.push(['No network',RH+4]);if(D.threads){lanes.push(['Main thread',RH*2]);lanes.push(['Background threads',RH*2])}if(D.logsTotal)lanes.push(['App log',RH*2]);lanes.push(['Time (s)',RH]);
+ const rows=R.filter(r=>on.has(r.cat));const lanes=[['Screen',FH],['Screens',RH+4],['Screen state',RH],['Loading / render',RH]];if((D.uev||[]).length)lanes.push(['User events',RH+8]);if((D.gaps||[]).length)lanes.push(['No network',RH+4]);if(D.threads){lanes.push(['Main thread',RH*2]);lanes.push(['Background threads',RH*2])}if(D.logsTotal)lanes.push(['App log',RH*2]);lanes.push(['Time (mm:ss.ms)',RH]);
  let y=0,top={};lanes.forEach(([n,h])=>{top[n]=y;y+=h});const H=y+rows.length*RH+6;
  let s=`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-size="10" font-family="system-ui"><defs>${Object.entries(GAPC).map(([k,c])=>`<pattern id="hatch-${k}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="${c}" opacity=".12"/><line x1="0" y1="0" x2="0" y2="6" stroke="${c}" stroke-width="2" opacity=".45"/></pattern>`).join('')}</defs>`;
  const tw=FH*0.46,step=Math.max(0.5,Math.ceil(tw/pxs/0.5)*0.5);
@@ -1759,8 +1763,11 @@ function draw(){const pxs=+$('#zoom').value,W=Math.ceil(D.end*pxs)+40,X=t=>t*pxs
  if(D.logsTotal){const mx=Math.max(1,...D.logHist),yb=top['App log'];D.logHist.forEach((n,i)=>{if(n){const h=Math.max(1,n/mx*(RH*2-4));s+=`<rect x="${X(i*0.25)}" y="${yb+RH*2-2-h}" width="${Math.max(1,0.25*pxs-0.5)}" height="${h}" fill="var(--mut)" opacity=".5"><title>${n} log lines</title></rect>`}});
   D.errT.forEach(t=>s+=`<rect x="${X(t)}" y="${yb+1}" width="1.5" height="${RH*2-2}" fill="var(--gap)"/>`);
   D.marks.forEach(m=>s+=`<path d="M${X(m.t)} ${yb+1} l4 0 l-4 6z" fill="var(--auth)"/><text x="${X(m.t)+5}" y="${yb+8}" fill="var(--auth)">${esc(m.label)}</text>`)}
- for(let t=0;t<=D.end;t+=(pxs<20?5:1))s+=`<line x1="${X(t)}" x2="${X(t)}" y1="${top['Time (s)']}" y2="${H}" stroke="var(--line)"/><text x="${X(t)+2}" y="${top['Time (s)']+11}" fill="var(--mut)">${t}</text>`;
- D.periods.forEach(p=>s+=`<rect x="${X(p.start)}" y="${top['Time (s)']}" width="${p.dur*pxs}" height="${H}" fill="var(--busy)" opacity=".08"/>`);
+ {const st=[0.1,0.2,0.5,1,2,5,10,30].find(v=>v*pxs>=78)||60,mi=st/5,ty=top['Time (mm:ss.ms)'];
+  for(let k=0;k*mi<=D.end+1e-9;k++){const t=+(k*mi).toFixed(3),maj=Math.abs(t/st-Math.round(t/st))<1e-6;
+   s+=maj?`<line x1="${X(t)}" x2="${X(t)}" y1="${ty}" y2="${H}" stroke="var(--line)"/><text x="${X(t)+2}" y="${ty+11}" fill="var(--mut)" font-family="ui-monospace,Menlo,monospace" font-size="9.5">${fmtT(t)}</text>`
+         :`<line x1="${X(t)}" x2="${X(t)}" y1="${ty+RH-4}" y2="${ty+RH}" stroke="var(--mut)" opacity=".5"/>`}}
+ D.periods.forEach(p=>s+=`<rect x="${X(p.start)}" y="${top['Time (mm:ss.ms)']}" width="${p.dur*pxs}" height="${H}" fill="var(--busy)" opacity=".08"/>`);
  (D.gaps||[]).forEach((g,i)=>{const gc=GAPC[g.kind]||'#94a3b8',x0=X(g.start),w=Math.max(2,g.dur*pxs);
   s+=`<rect x="${x0}" y="${y}" width="${w}" height="${H-y}" fill="url(#hatch-${g.kind})" opacity=".55" data-gap="${i}" style="cursor:pointer"/>`;
   s+=`<rect x="${x0}" y="${top['No network']+1}" width="${w}" height="${RH+2}" rx="3" fill="${gc}" data-gap="${i}" style="cursor:pointer"/>`;
@@ -1776,12 +1783,16 @@ function draw(){const pxs=+$('#zoom').value,W=Math.ceil(D.end*pxs)+40,X=t=>t*pxs
   if(r.issued!=null&&r.queue>0.05)s+=`<rect x="${X(r.issued)}" y="${yy+3}" width="${r.queue*pxs}" height="${RH-10}" fill="var(--queue)" class="rq" data-id="${r.id}" style="cursor:pointer"/>`;
   s+=`<rect class="rq" data-id="${r.id}" x="${X(r.start)}" y="${yy}" width="${w}" height="${RH-4}" rx="2" fill="${col(r.cat)}" ${crit.has(r.id)?'stroke="var(--fg)" stroke-width="1.5"':''} style="cursor:pointer"/>`;
   if(r.dur*pxs<200)s+=`<text x="${X(r.start)+w+3}" y="${yy+9}" fill="var(--mut)">${(r.dur*1000).toFixed(0)}ms</text>`});
- s+=`<line id="cur" y1="0" y2="${H}" stroke="var(--high)" opacity=".6"/></svg>`;$('#tlR').innerHTML=s;
+ s+=`<g id="meas"></g><line id="cur" y1="0" y2="${H}" stroke="var(--high)" opacity=".6" style="pointer-events:none"/><g id="curL" style="pointer-events:none"><rect id="curB" rx="3" height="15" fill="var(--fg)" opacity=".85"/><text id="curT" fill="var(--bg)" font-family="ui-monospace,Menlo,monospace" font-size="10.5" font-weight="600"></text></g></svg>`;$('#tlR').innerHTML=s;
+ TL={pxs,X,H,ty:top['Time (mm:ss.ms)']};drawMeasure();
  $('#tlL').innerHTML=lanes.map(([n,h])=>`<div style="height:${h}px;line-height:${h}px;font-weight:600">${n}</div>`).join('')+rows.map(r=>`<div onclick="openReq(${r.id})" data-id="${r.id}"><span class="pill" style="background:${col(r.cat)}">${r.method}</span> ${esc(r.host.split('.').slice(-2,-1)[0]||'')} ${esc(r.short)}</div>`).join('');
- const svg=$('#tlR svg');svg.onclick=e=>{const id=e.target.dataset.id,gi=e.target.dataset.gap,ui=e.target.dataset.uev;if(id)openReq(+id);else if(ui!=null)seek(D.uev[+ui].t);else if(gi!=null)openGap(+gi)};
+ const svg=$('#tlR svg');svg.onclick=e=>{const id=e.target.dataset.id,gi=e.target.dataset.gap,ui=e.target.dataset.uev;if(id)openReq(+id);else if(ui!=null)seek(D.uev[+ui].t);else if(gi!=null)openGap(+gi);
+  else{const bx=svg.getBoundingClientRect(),t=Math.max(0,(e.clientX-bx.left-4)/pxs);if(MEAS.a==null||MEAS.b!=null){MEAS.a=t;MEAS.b=null}else MEAS.b=t;drawMeasure()}};
  svg.onmousemove=e=>{const bx=svg.getBoundingClientRect(),t=Math.max(0,(e.clientX-bx.left-4)/pxs);$('#cur').setAttribute('x1',e.clientX-bx.left);$('#cur').setAttribute('x2',e.clientX-bx.left);
-  const id=e.target.dataset&&e.target.dataset.id,gi=e.target.dataset&&e.target.dataset.gap,ui=e.target.dataset&&e.target.dataset.uev;if(id){$('#peek').style.display='none';showTip(+id,e)}else if(ui!=null){$('#peek').style.display='none';showUevTip(+ui,e)}else if(gi!=null){$('#peek').style.display='none';showGapTip(+gi,e)}else{hideTip();$('#peek').style.display='block';$('#peek img').src=thumbAt(t);$('#peek div').textContent=s2(t)}};
- svg.onmouseleave=()=>{$('#peek').style.display='none';hideTip()};
+  const id=e.target.dataset&&e.target.dataset.id,gi=e.target.dataset&&e.target.dataset.gap,ui=e.target.dataset&&e.target.dataset.uev;if(id){$('#peek').style.display='none';showTip(+id,e)}else if(ui!=null){$('#peek').style.display='none';showUevTip(+ui,e)}else if(gi!=null){$('#peek').style.display='none';showGapTip(+gi,e)}else{hideTip();$('#peek').style.display='block';$('#peek img').src=thumbAt(t);$('#peek div').textContent=fmtT(t)}
+  const lx=e.clientX-bx.left,txt=fmtT(t)+(MEAS.a!=null&&MEAS.b==null?'  Δ '+fmtD(t-MEAS.a):''),T=$('#curT');T.textContent=txt;const tw=txt.length*6.6+8,ox=lx+tw+6>svg.width.baseVal.value?lx-tw-4:lx+4;
+  T.setAttribute('x',ox+4);T.setAttribute('y',TL.ty-3);$('#curB').setAttribute('x',ox);$('#curB').setAttribute('y',TL.ty-14);$('#curB').setAttribute('width',tw);$('#curL').style.display=''};
+ svg.onmouseleave=()=>{$('#peek').style.display='none';hideTip();$('#curL').style.display='none'};
  $('#tlL').onmousemove=e=>{const d=e.target.closest('[data-id]');d?showTip(+d.dataset.id,e):hideTip()};$('#tlL').onmouseleave=hideTip}
 // hover card
 const ISS={},CPATH={};
@@ -1802,7 +1813,7 @@ function showTip(id,e){const r=R[id],tip=$('#tip'),q=r.issued!=null&&r.queue>0.0
   <h5><span class="pill" style="background:${col(r.cat)}">${r.cat}</span> ${esc(r.method)} ${esc(r.short)}${r.op?' <span class="mut">['+esc(r.op)+']</span>':''}</h5>
   <div class="u">${esc(r.url.length>150?r.url.slice(0,150)+'…':r.url)}</div>
   <div class="row"><span>Status</span><span>${r.status||'—'} · ${esc(r.mime||'—')} · ${fb(r.size)}${r.enc?' ('+esc(r.enc)+')':''}</span></div>
-  <div class="row"><span>Time</span><span>${s2(r.start)} → ${s2(r.end)} · <b>${s2(r.dur)}</b></span></div>
+  <div class="row"><span>Time</span><span class="mono">${fmtT(r.start)} → ${fmtT(r.end)} · <b>${fmtD(r.dur)}</b></span></div>
   ${r.astart!=null?`<div class="row"><span>App measured</span><span>${s2(r.aend-r.astart)} (issued ${s2(r.astart)})</span></div>`:''}
   ${r.ph?phBar(r):`<div class="tb">${q?`<div style="width:${q/tot*100}%;background:var(--queue)"></div>`:''}<div style="width:${r.dur/tot*100}%;background:${col(r.cat)}"></div></div>
   <div class="tl"><span>${q?'queued '+s2(q)+' · ':''}network ${s2(r.dur)}</span><span>${esc(r.http||'')}${r.cdn?' · CDN':''}${r.cond?' · conditional':''}</span></div>`}
@@ -1824,12 +1835,12 @@ function gapBody(g,full){const lg=g.log||{},hl=(lg.highlights||[]).slice(0,full?
  ${hl.length?`<div class="iss">${hl.map(h=>`<div><span class="mono">${s2(h.t)}</span> <span class="b ${h.sev}" style="font-size:9px;color:#fff;border-radius:3px;padding:0 4px;background:${{crit:'var(--high)',error:'var(--high)',warn:'var(--med)',key:'var(--auth)',net:'var(--api)',app:'var(--image)'}[h.sev]||'var(--info)'}">${SEVN[h.sev]||h.sev}</span> ${esc(h.text)}</div>`).join('')}</div>`:''}`}
 function showGapTip(i,e){const g=D.gaps[i],tip=$('#tip');
  tip.innerHTML=`<div class="tt"><img src="${thumbAt(g.start+g.dur/2)}"><div style="flex:1;min-width:0"><h5><span class="pill" style="background:${GAPC[g.kind]}">${esc(GAPN[g.kind])}</span> ${s2(g.dur)} with no network</h5>
-  <div class="u">${s2(g.start)} → ${s2(g.end)} · ${esc(g.what)}</div>${gapBody(g,false)}</div></div><div class="mut" style="margin-top:4px">Click for full details</div>`;
+  <div class="u"><span class="mono">${fmtT(g.start)} → ${fmtT(g.end)}</span> · ${esc(g.what)}</div>${gapBody(g,false)}</div></div><div class="mut" style="margin-top:4px">Click for full details</div>`;
  tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;let x=e.clientX+16,y=e.clientY+16;if(x+w>innerWidth-8)x=e.clientX-w-16;if(y+h>innerHeight-8)y=innerHeight-h-8;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
 function showUevTip(i,e){const u=D.uev[i],tip=$('#tip'),c=UEC[u.kind];
- const rows=[['Screen',esc(u.screen||'—')],['Time',`${s2(u.t)}${u.end>u.t+0.005?' → '+s2(u.end)+' ('+msf(u.end-u.t)+')':''}`]];
+ const rows=[['Screen',esc(u.screen||'—')],['Time',`<span class="mono">${fmtT(u.t)}${u.end>u.t+0.005?' → '+fmtT(u.end)+'</span> ('+msf(u.end-u.t)+')':'</span>'}`]];
  if(u.detail)rows.push(['Detail',esc(u.detail)]);if(u.result)rows.push(['Result',esc(u.result)]);
- (u.steps||[]).forEach(st=>rows.push([esc(st.k),`+${msf(st.t-u.t)} (${s2(st.t)})`]));
+ (u.steps||[]).forEach(st=>rows.push([esc(st.k),`+${msf(st.t-u.t)} <span class="mono">(${fmtT(st.t)})</span>`]));
  if(u.reqAfter!=null)rows.push(['First request',`${reqLink(u.req)} issued <b>+${msf(u.reqAfter)}</b>`]);
  if(u.screenAfter!=null)rows.push(['Screen responded',`<b style="color:${u.screenAfter>=1?'var(--high)':u.screenAfter>=0.3?'var(--med)':'inherit'}">+${msf(u.screenAfter)}</b>`]);
  tip.innerHTML=`<div class="tt"><img src="${thumbAt(u.t)}"><div style="flex:1;min-width:0"><h5><span class="pill" style="background:${c}">${UEI[u.kind]||''} ${esc(u.label)}</span></h5>
@@ -1885,7 +1896,12 @@ function openReq(id,t){const r=R[id],tm=Object.entries(r.timings).map(([k,v])=>`
  <p><a class="j" onclick="dv.currentTime=${r.start}">▶ screen at start</a> · <a class="j" onclick="dv.currentTime=${r.end}">▶ at end</a>${b?` · <a class="j" onclick="dv.currentTime=${b.start}">▶ next screen change (+${(b.start-r.end).toFixed(2)}s)</a>`:''}</p>
  <div style="clear:both"></div><div class="strip"><figure><img src="${thumbAt(r.start)}"><figcaption>at start</figcaption></figure><figure><img src="${thumbAt(r.end)}"><figcaption>at end</figcaption></figure>${b?`<figure><img src="${thumbAt(b.end+0.2,true)}"><figcaption>after next change</figcaption></figure>`:''}</div></div>`);
  const v=$('#dv');v.addEventListener('loadedmetadata',()=>{v.currentTime=r.start},{once:true});tab(id,t||'ov')}
-document.addEventListener('keydown',e=>{if(e.key=='Escape')closeD()});
+function drawMeasure(){const g=$('#meas');if(!g||!TL)return;const {X,H,ty}=TL;let h='';const mk=(t,l)=>`<line x1="${X(t)}" x2="${X(t)}" y1="0" y2="${H}" stroke="#0f172a" stroke-width="1.5"/><rect x="${X(t)-9}" y="${ty+1}" width="18" height="13" rx="3" fill="#0f172a"/><text x="${X(t)}" y="${ty+11}" fill="#fff" font-size="10" font-weight="700" text-anchor="middle">${l}</text>`;
+ if(MEAS.a!=null)h+=mk(MEAS.a,'A');if(MEAS.b!=null){const a=Math.min(MEAS.a,MEAS.b),b=Math.max(MEAS.a,MEAS.b),lab=`Δ ${fmtD(b-a)}  (${fmtT(a)} → ${fmtT(b)})`;
+  h+=mk(MEAS.b,'B')+`<rect x="${X(a)}" y="0" width="${Math.max(1,X(b)-X(a))}" height="${H}" fill="#0f172a" opacity=".06"/><line x1="${X(a)}" x2="${X(b)}" y1="${ty-8}" y2="${ty-8}" stroke="#0f172a" stroke-width="1.5"/>`
+   +`<rect x="${(X(a)+X(b))/2-lab.length*3.2-6}" y="${ty-22}" width="${lab.length*6.4+12}" height="16" rx="4" fill="#0f172a"/><text x="${(X(a)+X(b))/2}" y="${ty-10}" fill="#fff" font-size="10.5" font-weight="700" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">${lab}</text>`}
+ g.innerHTML=h;const r=$('#measR');if(r)r.innerHTML=MEAS.a==null?'Click the timeline to set point A, then B, to measure.':MEAS.b==null?`A = <b>${fmtT(MEAS.a)}</b> — click to set B`:`A = <b>${fmtT(MEAS.a)}</b> · B = <b>${fmtT(MEAS.b)}</b> · <b style="color:var(--acc)">Δ ${fmtD(Math.abs(MEAS.b-MEAS.a))}</b> <a class="j" onclick="MEAS.a=MEAS.b=null;drawMeasure()">clear</a>`}
+document.addEventListener('keydown',e=>{if(e.key=='Escape'){closeD();MEAS.a=MEAS.b=null;drawMeasure()}});
 // tab summaries
 const kc=(v,l,sub,tone)=>`<div class="kpi${tone?' '+tone:''}"><b>${v}</b><span>${l}</span>${sub?`<em title="${String(sub).replace(/<[^>]+>/g,'').replace(/"/g,'&quot;')}">${sub}</em>`:''}</div>`;
 function summ(id,cards,take){const el=$('#s-'+id);if(el)el.innerHTML=`<div class="kpis">${cards.join('')}</div>`+(take.length?`<div class="card take"><h3>Key takeaways</h3><ul>${take.map(t=>`<li>${t}</li>`).join('')}</ul></div>`:'')}
