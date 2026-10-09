@@ -1,0 +1,5 @@
+captures/
+ios-screen-recorder
+screen-ocr
+__pycache__/
+.DS_Store

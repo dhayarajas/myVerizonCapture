@@ -1,0 +1,12 @@
+{
+  "_comment": "Performance budgets (seconds unless noted). Edit freely. metric = a key from summary.json 'metrics'.",
+  "budgets": [
+    {"metric": "cold_start_total",        "label": "Cold start (launch → first screen)", "max": 3.0},
+    {"metric": "launch_to_first_api",     "label": "Launch → first API call",            "max": 1.0},
+    {"metric": "spinner:Sign-in (Face ID)", "label": "Sign-in spinner",                 "max": 6.0},
+    {"metric": "spinner_longest",         "label": "Longest spinner",                    "max": 5.0},
+    {"metric": "spinner_total",           "label": "Total spinner time",                 "max": 10.0},
+    {"metric": "api_p95",                 "label": "API p95",                            "max": 2.0},
+    {"metric": "queued_max",              "label": "Max on-device queueing",             "max": 0.3}
+  ]
+}
