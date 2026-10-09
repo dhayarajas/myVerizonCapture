@@ -743,12 +743,18 @@ def build_findings(reqs, periods, bursts, logs, R, life=(), extras=None):
             f"{r['url'][:140]} has no Content-Encoding.", "Enable gzip/brotli for text responses on this host.",
             [r["id"]], r["start"], "compress")
 
-    for r in reqs:
-        if r["cat"] in ("api", "auth") and r["size"] >= 50000:
-            add("low", f"Large API response {fmt_bytes(r['size'])}: {r['short']}", 0,
-                f"{r['url'][:140]} took {r['dur']:.2f}s.",
-                "Trim the payload (only fields the screen renders) or split above/below-the-fold content.",
-                [r["id"]], r["start"], "payload")
+    huge = [r for r in reqs if r["cat"] in ("api", "auth", "asset") and r["size"] >= 1_000_000 and TEXT_MIME.search(r["mime"])]
+    for r in huge:
+        add("med", f"Huge response {fmt_bytes(r['size'])}: {r['short']} ({r['dur']:.2f}s)", r["dur"],
+            f"{r['method']} {r['url'][:140]} — {r['mime']}, {r['enc'] or 'not compressed'} on the wire.",
+            "Paginate / filter server-side (send only what the first screen shows) and cache it; don't ship the whole catalogue.",
+            [r["id"]], r["start"], "payload")
+    big = sorted([r for r in reqs if r["cat"] in ("api", "auth") and 50000 <= r["size"] < 1_000_000], key=lambda r: -r["size"])
+    if big:
+        add("low", f"{len(big)} large API response(s) of 50 KB+ ({fmt_bytes(sum(r['size'] for r in big))} in total)", 0,
+            "Largest: " + "; ".join(f"{r['short']} {fmt_bytes(r['size'])}" for r in big[:5]) + ".",
+            "Trim the payload (only fields the screen renders) or split above/below-the-fold content.",
+            [r["id"] for r in big[:6]], big[0]["start"], "payload")
 
     hosts = defaultdict(list)
     for r in reqs:
@@ -834,8 +840,10 @@ def savings(periods, bursts, R, reqs):
     agg = {}
 
     def put(key, title, basis, save, span, refs):
-        a = agg.setdefault(key, {"title": title, "basis": basis, "save": 0.0, "spans": [], "refs": []})
+        a = agg.setdefault(key, {"title": title, "basis": basis, "save": 0.0, "spans": [], "refs": [], "per": {}})
         a["save"] += save
+        for x in refs:
+            a["per"][str(x)] = round(a["per"].get(str(x), 0) + save, 2)
         if span not in a["spans"]:
             a["spans"].append(span)
         a["refs"] += [x for x in refs if x not in a["refs"]]
@@ -907,11 +915,18 @@ def deep_findings(F, pacing, uev, pay, imgs, cache, third, periods, R):
             f"Total {pacing['hitchTime']*1000:.0f} ms of frozen frames while the screen was moving (capture ~{pacing['fps']} fps). "
             "Screen-capture can drop frames itself, so treat single short hitches with care.",
             "Check main-thread work at these moments (layout, image decode, JSON parsing) in the Timeline.", [], w["t"], "hitch")
-    for u in uev:
-        if u["kind"] in ("tap", "drag") and u.get("feedback") is not None and u["feedback"] > 0.15 and not u.get("inferred"):
-            add("med" if u["feedback"] >= 0.3 else "low", f"Tap on “{u['screen']}” got visual feedback after {u['feedback']*1000:.0f} ms",
-                u["feedback"], "Apple's guidance is to acknowledge touches within ~100 ms (e.g. highlight / pressed state).",
-                "Add an immediate pressed/highlight state on the tapped control.", [u["req"]] if u.get("req") is not None else [], u["t"], "feedback")
+    slow_taps = sorted([u for u in uev if u["kind"] in ("tap", "drag") and u.get("feedback") is not None and u["feedback"] > 0.15
+                        and not u.get("inferred")], key=lambda u: -u["feedback"])
+    all_taps = [u for u in uev if u["kind"] in ("tap", "drag") and u.get("feedback") is not None and not u.get("inferred")]
+    if slow_taps:
+        w = slow_taps[0]
+        med = statistics.median(u["feedback"] for u in all_taps)
+        add("med" if w["feedback"] >= 0.3 else "low",
+            f"{len(slow_taps)} of {len(all_taps)} taps got visual feedback after >150 ms (median {med*1000:.0f} ms, worst {w['feedback']*1000:.0f} ms on “{w['screen']}”)",
+            w["feedback"], "Slowest: " + "; ".join(f"{u['feedback']*1000:.0f} ms on “{u['screen'][:40]}”" for u in slow_taps[:5])
+            + ". Apple's guidance is to acknowledge touches within ~100 ms.",
+            "Add an immediate pressed/highlight state on tappable controls; show a skeleton/spinner at once while the next screen loads.",
+            [u["req"] for u in slow_taps[:5] if u.get("req") is not None], w["t"], "feedback")
     for d in pay["dups"][:3]:
         if d["wasted"] >= 4096:
             add("low", f"{d['size']/1024:.1f} KB of identical JSON repeated {d['count']}× across {d['reqs']} response(s)", 0,
@@ -1090,6 +1105,68 @@ def name_states(states, launch_t):
     if launch_t is None and named and named[0]["name"] == "Home screen" and len(named) > 1:
         launch_t = named[0]["end"]
     return named, launch_t
+
+
+def insert_splash(screens, frames, launch_t):
+    """Fast launches show the splash only between the launch zoom and the loader cross-fade (< 0.25 s 'stable'):
+    if no splash state was found, treat the settled frames after the launch animation as the splash screen."""
+    if launch_t is None or any(x["name"] == "Splash screen" for x in screens):
+        return screens
+    nxt = next((i for i, x in enumerate(screens) if x["start"] > launch_t), None)
+    if nxt is None or screens[nxt]["title"]:
+        return screens
+    big = next((f["t"] for f in frames if launch_t <= f["t"] <= screens[nxt]["start"] and f["frac"] > 0.3), None)
+    if big is None:
+        return screens
+    settle = next((f["t"] for f in frames if big < f["t"] < screens[nxt]["start"] and f["frac"] < 0.05), None)
+    if settle is None or screens[nxt]["start"] - settle < 0.1:
+        return screens
+    sp = {"name": "Splash screen", "start": round(settle, 2), "end": screens[nxt]["start"], "loading": False, "title": "",
+          "sample": round(settle, 2), "words": "(brief splash between launch animation and loader)"}
+    return screens[:nxt] + [sp] + screens[nxt:]
+
+
+def web_pages(reqs, bursts):
+    """Web navigations inside the app: full HTML page loads and large React-Server-Component navigations."""
+    out = []
+    for r in reqs:
+        if r["method"] != "GET" or r["status"] != 200:
+            continue
+        doc = r["mime"] == "text/html" and r["size"] >= 20000
+        rsc = r["mime"] == "text/x-component" and r["size"] >= 50000
+        if not (doc or rsc):
+            continue
+        segs = [x for x in r["path"].split("/") if x and x not in ("auth", "nextgendigital", "sales", "us")]
+        name = "/".join(segs[-2:]) if segs else r["host"]
+        chg = next((b for b in bursts if r["end"] - 0.2 <= b["start"] <= r["end"] + 4 and b["peak"] >= 0.02), None)
+        out.append({"t": r["start"], "end": r["end"], "name": name, "id": r["id"], "kind": "page" if doc else "route",
+                    "size": r["size"], "dur": r["dur"], "shown": round(chg["start"] - r["start"], 2) if chg else None,
+                    "settled": round(chg["end"] - r["start"], 2) if chg else None})
+    return out
+
+
+BODYISH = re.compile(r"^[a-z(]|[.?!,;:]\S*$|\d$")
+
+
+def rename_web_screens(screens, pages):
+    """OCR of a scrolled web page picks body text as the 'title' — use the current web page name instead."""
+    for x in screens:
+        t = x.get("title") or ""
+        if not pages or not t:
+            continue
+        pg = max((p for p in pages if p["t"] <= x["start"] + 0.2), key=lambda p: p["t"], default=None)
+        if pg is None:
+            continue
+        if len(t) > 36 or len(t.split()) >= 7 or BODYISH.search(t):
+            x["webPage"] = pg["name"]
+            x["name"] = f"Web: {pg['name']}" + (" (loading)" if x.get("loading") else "")
+    merged = []
+    for x in screens:
+        if merged and merged[-1]["name"] == x["name"]:
+            merged[-1]["end"] = x["end"]
+        else:
+            merged.append(x)
+    return merged
 
 
 def label_spans_by_screen(periods, bursts, screens):
@@ -1809,6 +1886,9 @@ def main():
     ocr_states(S, meta, states)
     launch_log = next((l["t"] for l in logs if l["src"] == "system"), None) if logs else None
     screens, launch_t = name_states(states, launch_log)
+    screens = insert_splash(screens, frames, launch_t)
+    pages = web_pages(reqs, bursts)
+    screens = rename_web_screens(screens, pages)
     label_spans_by_screen(periods, bursts, screens)
     threads = load_threads(os.path.join(S, "threads.ndjson"), start_ms, end_s, app_procs or [])
     name_spans(periods, bursts, R)
@@ -1927,7 +2007,7 @@ def main():
         "logHist": log_hist(log_t, end_s),
         "errT": [l["t"] for l in logs if l["lvl"] in ("Error", "Fault")],
         "devices": {k or "mac": v for k, v in devices.items()}, "end": end_s,
-        "bio": bio_iv, "taskInfo": taskinfo, "screens": screens, "gaps": gaps, "uev": uev,
+        "bio": bio_iv, "taskInfo": taskinfo, "screens": screens, "gaps": gaps, "uev": uev, "pages": pages,
         "pacing": pacing, "screenCost": scost, "payload": pay, "images": imgs, "cacheAudit": cache, "thirdParty": third,
         "resumes": res, "cond": cond, "build": build,
         "threads": ({"main": threads["main"], "n": threads["threads"], "cats": threads["cats"], "bins": threads["bins"], "step": threads["step"],
@@ -2036,7 +2116,7 @@ pre.body{background:var(--bg);border:1px solid var(--line);border-radius:8px;pad
 <section data-tab="cold"><h2>Cold start <span class="mut">— from tapping the app icon to the first usable screen</span></h2><div class="sum" id="s-cold"></div><div id="coldsec"></div></section>
 <section data-tab="loading"><h2>Loading periods <span class="mut">— spinner/progress indicator detected on screen, and the request chain that kept it there</span></h2><div class="sum" id="s-loading"></div><div id="periods"></div></section>
 <section data-tab="render"><h2>Render milestones <span class="mut">— screen changes and the response that preceded them</span></h2><div class="sum" id="s-render"></div><div id="smooth"></div><div class="card"><table id="bursts"></table></div></section>
-<section data-tab="screens"><h2>Cost per screen <span class="mut">— everything started while each screen was shown (until the next screen appears)</span></h2><div class="sum" id="s-screens"></div><div class="card"><table id="scost"></table></div></section>
+<section data-tab="screens"><h2>Cost per screen <span class="mut">— everything started while each screen was shown (until the next screen appears)</span></h2><div class="sum" id="s-screens"></div><div class="card"><table id="scost"></table></div><div id="webpages"></div></section>
 <section data-tab="efficiency"><h2>Efficiency <span class="mut">— payloads, images, caching and third-party cost</span></h2><div class="sum" id="s-efficiency"></div><div id="effsec"></div></section>
 <section data-tab="lifecycle"><h2>App lifecycle &amp; instrumentation <span class="mut">— from the device log</span></h2><div class="sum" id="s-lifecycle"></div><div id="lifesec"></div></section>
 <section data-tab="timeline"><h2>Timeline</h2><div class="sum" id="s-timeline"></div>
@@ -2424,6 +2504,10 @@ if(D.cold){const C=D.cold,ph=C.phases;$('#c-cold').textContent=s2(C.total);
 {const b=D.build||{},c=D.cond||{},t=[];if(b.appVersion)t.push(`app ${esc(b.appVersion)}${b.build?' ('+esc(b.build)+')':''}`);if(b.os)t.push('iOS '+esc(b.os));
  t.push('network: '+esc(c.network||'default')+(c.proxyThrottling?' (throttled)':''));
  $('#hdtags').innerHTML=t.map(x=>`<span class="pill" style="background:#475569">${x}</span>`).join(' ')+` <span id="annlink"></span><video src="annotated.mp4" preload="metadata" style="display:none" onloadedmetadata="$('#annlink').innerHTML='<a class=&quot;j&quot; href=&quot;annotated.mp4&quot; target=&quot;_blank&quot;>▶ Annotated video</a>'"></video>`}
+// web pages (screens tab)
+{const P=D.pages||[];if(P.length)$('#webpages').innerHTML=`<h2>Web pages <span class="mut">— in-app web navigations (HTML page loads and React Server Component routes)</span></h2><div class="card"><table>
+ <tr><th>Navigation</th><th>Type</th><th>Request</th><th>Size</th><th>Request time</th><th>Screen changed after</th><th>Settled after</th></tr>${P.map(p=>`<tr><td><a class="j mono" onclick="seek(${p.t})">${fmtT(p.t)}</a> <b>${esc(p.name)}</b></td><td>${p.kind=='page'?'HTML page':'RSC route'}</td><td>${reqLink(p.id)}</td><td>${fb(p.size)}</td>
+ <td style="color:${p.dur>=2?'var(--high)':p.dur>=1?'var(--med)':'inherit'}"><b>${s2(p.dur)}</b></td><td>${p.shown!=null?'+'+s2(p.shown):''}</td><td>${p.settled!=null?'+'+s2(p.settled):''}</td></tr>`).join('')}</table></div>`}
 // screens tab
 {const C=D.screenCost||[];$('#c-screens').textContent=C.length||'';
  const top=[...C].sort((a,b)=>b.dur-a.dur)[0],heavy=[...C].sort((a,b)=>b.bytes-a.bytes)[0],chat=[...C].sort((a,b)=>b.analytics-a.analytics)[0];
@@ -2461,7 +2545,9 @@ if(D.cold){const C=D.cold,ph=C.phases;$('#c-cold').textContent=s2(C.total);
 // smoothness (render tab)
 {const P=D.pacing,taps=(D.uev||[]).filter(u=>u.feedback!=null);if(P||taps.length){
  $('#smooth').innerHTML=`<div class="kpis">${P?kc(P.motionFps?P.motionFps+' fps':'—','Frame rate while moving',`capture ${P.fps} fps · ${s2(P.motionTime)} of motion`,P.motionFps&&P.motionFps<50?'warn':'')+kc(P.hitches.length,'Frame hitches','repeated frames during motion',P.hitches.length?'warn':'')+kc(P.hitchTime?msf(P.hitchTime):'0 ms','Frozen-frame time','',P.hitchTime>=0.1?'bad':''):''}
-  ${taps.map(u=>kc(msf(u.feedback),`${u.kind=='launch'?'Launch':'Tap'} → first visual feedback`,esc(u.screen||''),u.feedback>=0.3?'bad':u.feedback>0.1?'warn':'')).join('')}</div>
+  ${(()=>{const tp=taps.filter(u=>u.kind!='launch'),fb=tp.map(u=>u.feedback).sort((a,b)=>a-b),md=fb.length?fb[Math.floor(fb.length/2)]:0,sl=tp.filter(u=>u.feedback>0.15).length;
+    return tp.length?kc(tp.length,'Taps measured','')+kc(msf(md),'Median tap → feedback','',md>0.15?'warn':'')+kc(sl,'Taps slower than 150 ms',`${Math.round(sl/tp.length*100)}% of taps`,sl?'bad':'')+kc(msf(fb[fb.length-1]),'Worst tap → feedback','',fb[fb.length-1]>=0.3?'bad':''):''})()}</div>
+  ${taps.filter(u=>u.kind!='launch').length?`<div class="card"><h3>Slowest tap feedback</h3><table><tr><th>When</th><th>Screen</th><th>Feedback</th><th>First request</th><th>Screen changed</th></tr>${taps.filter(u=>u.kind!='launch').sort((a,b)=>b.feedback-a.feedback).slice(0,10).map(u=>`<tr><td><a class="j mono" onclick="seek(${u.t})">${fmtT(u.t)}</a></td><td>${esc(u.screen||'')}</td><td><b style="color:${u.feedback>=0.3?'var(--high)':u.feedback>0.15?'var(--med)':'inherit'}">${msf(u.feedback)}</b></td><td>${u.req!=null?reqLink(u.req)+' +'+msf(u.reqAfter):''}</td><td>${u.screenAfter!=null?'+'+msf(u.screenAfter):''}</td></tr>`).join('')}</table></div>`:''}
   ${P&&P.hitches.length?`<div class="card"><h3>Hitches</h3><table><tr><th>When</th><th>Frozen</th><th>Screen</th></tr>${P.hitches.map(h=>`<tr><td><a class="j mono" onclick="seek(${h.t})">${fmtT(h.t)}</a></td><td><b>${msf(h.dur)}</b></td><td>${esc(h.screen)}</td></tr>`).join('')}</table></div>`:''}
   <div class="mut" style="font-size:12px;margin:4px 0 8px">Feedback = first visible pixel change after the touch (pressed state, highlight or navigation). Apple recommends acknowledging a touch within ~100 ms. Smoothness is measured from the ${P?P.fps:'—'} fps screen capture; capture can drop frames, so single short hitches are indicative.</div>`}}
 // resume (cold tab)

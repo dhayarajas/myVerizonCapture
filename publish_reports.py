@@ -128,6 +128,20 @@ def blur_thumbs(src_dir, dst_dir, thumbs, boxes):
         im.save(d, quality=72)
 
 
+LIMIT = 90 * 1024 * 1024  # GitHub rejects files over 100 MB
+
+
+def fit_video(src, dst):
+    """Re-encode a video so it fits under LIMIT (keeps subtitle/chapter streams)."""
+    dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", src],
+                               capture_output=True, text=True).stdout.strip() or 1)
+    kbps = int(LIMIT * 8 / 1000 / dur * 0.9)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-map", "0", "-c:v", "libx264", "-preset", "medium",
+                    "-b:v", f"{kbps}k", "-maxrate", f"{kbps * 2}k", "-bufsize", f"{kbps * 4}k", "-c:s", "copy",
+                    "-movflags", "+faststart", dst], check=True)
+    print(f"  {os.path.basename(src)}: {os.path.getsize(src) / 1048576:.0f} MB -> {os.path.getsize(dst) / 1048576:.0f} MB (re-encoded to fit GitHub)")
+
+
 def publish_full(session):
     name = os.path.basename(session.rstrip("/"))
     if not os.path.exists(os.path.join(session, "report.html")):
@@ -137,8 +151,13 @@ def publish_full(session):
     shutil.rmtree(dst, ignore_errors=True)
     os.makedirs(dst)
     for f in ("report.html", "report-payloads.js", "report-logs.js", "screen.mp4", "annotated.mp4", "annotated-1080p.mp4", "summary.json", "session.json"):
-        if os.path.exists(os.path.join(session, f)):
-            shutil.copy2(os.path.join(session, f), dst)
+        src = os.path.join(session, f)
+        if not os.path.exists(src):
+            continue
+        if f.endswith(".mp4") and os.path.getsize(src) > LIMIT:
+            fit_video(src, os.path.join(dst, f))
+        else:
+            shutil.copy2(src, dst)
     shutil.copytree(os.path.join(session, "thumbs"), os.path.join(dst, "thumbs"))
     print(f"{name}: full report copied")
 

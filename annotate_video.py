@@ -264,6 +264,7 @@ def wrap(text, f, width):
 
 FIXES = {
     "slow": "Profile server time for this endpoint (it is almost all server wait); front it with the CDN/edge or fix origin routing.",
+    "slow-web": "Speed up this endpoint (server time, payload size) — it runs from the in-app web view, so no on-device phase timing is available.",
     "slow-nocdn": "This host has no CDN in front — serve it from the edge / a closer region and profile the server time.",
     "queue": "Requests wait for a free connection (6 per host over HTTP/1.1): use HTTP/2 multiplexing, or fewer / combined tile calls.",
     "logging": "Don't await logging/telemetry before the next business call — make it fire-and-forget or batch it.",
@@ -295,22 +296,25 @@ def blocking_now(D, t):
                     key = "logging"
                 elif ph and ph["setup"] >= 0.1 and t < r["start"] + ph["setup"]:
                     key = "conn"
+                elif not ph:
+                    key = "slow-web"
                 else:
                     key = "slow" if r.get("cdn") else "slow-nocdn"
                 for sv in D.get("savings", []):
-                    if c["id"] in sv.get("refs", []):
-                        save = max(save or 0, sv["save"])
+                    v = (sv.get("per") or {}).get(str(c["id"]))
+                    if v:
+                        save = max(save or 0, v)
             elif c["kind"] == "queue":
                 r = R[c["id"]]
                 what, key = f"Queued on the phone: {r['short']} is waiting for a free connection to {r['host']}", "queue"
-                save = next((sv["save"] for sv in D.get("savings", []) if c["id"] in sv.get("refs", [])), None)
+                save = next(((sv.get("per") or {}).get(str(c["id"])) for sv in D.get("savings", []) if (sv.get("per") or {}).get(str(c["id"]))), None)
             else:
                 bio = any(b0 <= t < b1 for b0, b1 in c.get("bio", []))
                 if bio:
                     what, key = "Face ID prompt on screen (user authenticating)", "bio"
                 else:
                     what, key = "Nothing on the network — the app is working on the device", "device"
-                    save = next((sv["save"] for sv in D.get("savings", []) if sv["title"].startswith("On-device")), None)
+                    save = round((c["end"] - c["start"]) / 2, 2) if c["end"] - c["start"] >= 0.3 else None
             return {"what": what, "fix": FIXES.get(key), "start": c["start"], "end": c["end"], "span": name, "save": save, "id": c.get("id")}
     return None
 
@@ -478,16 +482,34 @@ def segments(D):
     for g in D.get("gaps", []):
         if g["kind"] in ("idle", "user") and g["dur"] >= 2.0:
             mark(g["start"] + 0.4, (g["end"] if g.get("tail") else g["end"] - 0.4), FAST, "user idle" if g["kind"] == "idle" else "user on screen")
+    # slow-motion candidates by priority; extra time capped at 12% of the recording (long journeys stay watchable)
+    cand = []
     for u in D.get("uev", []):
-        if u["kind"] in ("tap", "launch", "drag") and not u.get("inferred"):
-            mark(u["t"] - 0.25, u["t"] + 0.9, SLOW, "tap", True)
-        elif u["kind"] == "bio":
-            mark(u["t"] - 0.2, u["end"] + 0.3, SLOW, "Face ID", True)
+        if u["kind"] == "bio":
+            cand.append((0, u["t"] - 0.2, u["end"] + 0.3, "Face ID"))
+        elif u["kind"] == "launch":
+            cand.append((1, u["t"] - 0.25, u["t"] + 0.9, "launch"))
     issued = sorted(r.get("issued", r["start"]) for r in D["reqs"] if r["cat"] in ("api", "auth"))
-    for i, t0 in enumerate(issued):
-        if sum(1 for x in issued[i:] if x - t0 <= 0.4) >= 5:
-            mark(t0 - 0.2, t0 + 1.0, SLOW, "request fan-out", True)
-            break
+    i, last = 0, -9
+    while i < len(issued):
+        t0 = issued[i]
+        k = sum(1 for x in issued[i:] if x - t0 <= 0.4)
+        if k >= 5 and t0 - last > 3:
+            cand.append((2, t0 - 0.2, t0 + 1.0, f"{k}-request fan-out"))
+            last = t0
+            i += k
+        else:
+            i += 1
+    for u in D.get("uev", []):
+        if u["kind"] in ("tap", "drag") and not u.get("inferred"):
+            slow = (u.get("feedback") or 0) >= 0.15 or (u.get("screenAfter") or 0) >= 0.4
+            cand.append((3 if slow else 4, u["t"] - 0.25, u["t"] + 0.9, "slow tap response" if slow else "tap"))
+    budget = 0.12 * end
+    for pri, a, b, why in sorted(cand):
+        extra = (b - a) * (1 / SLOW - 1)
+        if pri <= 1 or extra <= budget:
+            mark(a, b, SLOW, why, True)
+            budget -= extra
     segs, a = [], 0.0
     for i in range(1, n + 1):
         if i == n or speed[i] != speed[i - 1] or reason[i] != reason[i - 1]:

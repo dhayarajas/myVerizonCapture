@@ -15,12 +15,16 @@ print(int(m['startEpochMs']/1000)-5, int(m.get('endEpochMs', m['startEpochMs'])/
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-echo "Pulling log archive from the iPhone..."
-idevicesyslog archive "$TMP/a.tar" --start-time "$START" >/dev/null 2>&1 || { echo "Could not pull the log archive."; exit 1; }
-mkdir -p "$TMP/s.logarchive" && tar -xf "$TMP/a.tar" -C "$TMP/s.logarchive" && rm -f "$TMP/a.tar"
-
 FROM=$(date -r "$START" "+%Y-%m-%d %H:%M:%S"); TO=$(date -r "$END" "+%Y-%m-%d %H:%M:%S")
-/usr/bin/log show --archive "$TMP/s.logarchive" --style ndjson --info --debug --start "$FROM" --end "$TO" \
-  --predicate 'processImagePath BEGINSWITH "/private/var/containers/Bundle/Application"' \
-  > "$SESSION/threads.ndjson" 2>/dev/null
+for attempt in 1 2 3; do
+  echo "Pulling log archive from the iPhone (attempt $attempt)..."
+  rm -rf "$TMP/a.tar" "$TMP/s.logarchive"
+  idevicesyslog archive "$TMP/a.tar" --start-time "$START" >/dev/null 2>&1 || { echo "Could not pull the log archive."; exit 1; }
+  mkdir -p "$TMP/s.logarchive" && tar -xf "$TMP/a.tar" -C "$TMP/s.logarchive" && rm -f "$TMP/a.tar"
+  /usr/bin/log show --archive "$TMP/s.logarchive" --style ndjson --info --debug --start "$FROM" --end "$TO" \
+    --predicate 'processImagePath BEGINSWITH "/private/var/containers/Bundle/Application"' \
+    > "$SESSION/threads.ndjson" 2>/dev/null
+  (( $(grep -c '"logEvent"' "$SESSION/threads.ndjson") > 0 )) && break
+  echo "  archive not flushed yet — waiting 15 s"; sleep 15   # the phone writes recent logs to its archive with a delay
+done
 echo "$(grep -c '"logEvent"' "$SESSION/threads.ndjson") app log events with thread IDs -> $SESSION/threads.ndjson"
