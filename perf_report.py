@@ -633,10 +633,14 @@ def build_findings(reqs, periods, bursts, logs, R, life=(), extras=None):
             if r["cat"] in ("logging", "analytics") and nxt and nxt["kind"] == "req" and c["tight"] and r["dur"] >= 0.25 and r["id"] not in seen:
                 seen.add(r["id"])
                 n = R[nxt["id"]]
-                add("high" if r["dur"] >= 1 else "med",
-                    f"{n['short']} waited for logging call {r['short']} ({r['dur']:.2f}s)", r["dur"],
+                confirmed = n.get("issued") is not None  # app's own issue time known -> real dependency
+                if confirmed and n["issued"] < r["end"] - 0.05:
+                    continue  # the app issued it before the logging call finished: not waiting on it
+                add(("high" if r["dur"] >= 1 else "med") if confirmed else "low",
+                    f"{n['short']} {'waited' if confirmed else 'may have waited'} for logging call {r['short']} ({r['dur']:.2f}s)", r["dur"],
                     f"{n['method']} {n['host']}{n['path']} started {(n['start']-r['end'])*1000:.0f} ms after "
-                    f"{r['method']} {r['host']}{r['path']} {('['+r['op']+'] ') if r['op'] else ''}finished, during a {label}.",
+                    f"{r['method']} {r['host']}{r['path']} {('['+r['op']+'] ') if r['op'] else ''}finished, during a {label}."
+                    + ("" if confirmed else " Inferred from timing only (no device log for this run) — confirm with a capture that includes the device log."),
                     "Make logging/telemetry fire-and-forget (don't await it before the next business call), or batch it.",
                     [r["id"], n["id"]], r["start"], "logging")
             if r["cat"] in ("api", "auth") and r["dur"] >= 1.5 and r["id"] not in seen:
