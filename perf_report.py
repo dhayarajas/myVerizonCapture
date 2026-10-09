@@ -1404,14 +1404,17 @@ TEMPLATE = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>__TITLE__</title>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--fg:#1d2330;--mut:#667085;--line:#e4e7ec;--acc:#2563eb;
+:root{--hdr:#e9edf3;--tabbg:#dfe4ec;--tabhov:#d3dae5;--bg:#f6f7f9;--card:#fff;--fg:#1d2330;--mut:#667085;--line:#e4e7ec;--acc:#2563eb;
 --api:#2563eb;--auth:#7c3aed;--image:#0d9488;--asset:#64748b;--logging:#d97706;--analytics:#a3a3a3;--tunnel:#d4d4d4;--gap:#ef4444;
 --busy:#fbbf24;--queue:#f472b6;--change:#3b82f6;--idle:#e5e7eb;--high:#dc2626;--med:#d97706;--low:#2563eb;--info:#6b7280}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#181b22;--fg:#e6e8ec;--mut:#98a2b3;--line:#2a2f3a;--idle:#2a2f3a;--tunnel:#3a3f4a}}
+@media (prefers-color-scheme:dark){:root{--hdr:#161a22;--tabbg:#1f2430;--tabhov:#272d3a;--bg:#0f1115;--card:#181b22;--fg:#e6e8ec;--mut:#98a2b3;--line:#2a2f3a;--idle:#2a2f3a;--tunnel:#3a3f4a}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.45 -apple-system,system-ui,Segoe UI,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}.hd{padding:16px 24px 6px}
-#tabs{display:flex;gap:2px;padding:0 20px;overflow-x:auto}#tabs a{padding:9px 14px;cursor:pointer;color:var(--mut);border-bottom:2px solid transparent;white-space:nowrap;font-weight:500}
-#tabs a:hover{color:var(--fg)}#tabs a.on{color:var(--acc);border-bottom-color:var(--acc)}#tabs .cnt{font-size:11px;background:var(--line);color:var(--fg);border-radius:9px;padding:0 6px;margin-left:3px}#tabs .cnt:empty{display:none}
+header{position:sticky;top:0;z-index:5;background:var(--hdr);border-bottom:1px solid var(--line)}.hd{padding:16px 24px 6px}
+#tabs{display:flex;gap:4px;padding:6px 20px 0;overflow-x:auto;align-items:flex-end}
+#tabs a{padding:8px 16px;cursor:pointer;color:var(--mut);white-space:nowrap;font-weight:500;background:var(--tabbg);border:1px solid var(--line);border-bottom:none;border-radius:9px 9px 0 0;margin-bottom:-1px;transition:background .15s,color .15s}
+#tabs a:hover{color:var(--fg);background:var(--tabhov)}#tabs a.on{color:var(--acc);background:var(--bg);font-weight:600;border-color:var(--line);box-shadow:inset 0 3px 0 var(--acc);position:relative;z-index:1}
+#tabs a.dis{opacity:.45;cursor:not-allowed;background:transparent;border-style:dashed}#tabs a.dis:hover{color:var(--mut);background:transparent}
+#tabs .cnt{font-size:11px;background:var(--line);color:var(--fg);border-radius:9px;padding:0 6px;margin-left:5px}#tabs a.on .cnt{background:var(--acc);color:#fff}#tabs .cnt:empty{display:none}
 section{display:none}section.on{display:block}main>section>h2:first-child,main>section>div>h2:first-child{margin-top:18px}h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 10px}h3{font-size:14px;margin:0 0 6px}
 main{padding:0 24px 60px;max-width:1500px}.mut{color:var(--mut)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:14px 0}
@@ -1803,7 +1806,8 @@ if(D.cold){const C=D.cold,ph=C.phases;$('#c-cold').textContent=s2(C.total);
  $('#coldsec').innerHTML=j}
 // tabs
 const has={lifecycle:!!D.logsTotal,logs:!!D.logsTotal,cold:!!D.cold};
-document.querySelectorAll('#tabs a').forEach(a=>{if(has[a.dataset.tab]===false)a.style.display='none';a.onclick=()=>showTab(a.dataset.tab)});
+const WHY={cold:'No app launch in this recording',lifecycle:'No device log captured for this run',logs:'No device log captured for this run'};
+document.querySelectorAll('#tabs a').forEach(a=>{const t=a.dataset.tab;if(has[t]===false){a.classList.add('dis');a.title=WHY[t]||'No data in this run';a.setAttribute('aria-disabled','true')}else a.onclick=()=>showTab(t)});
 $('#c-loading').textContent=D.periods.length||'';$('#c-render').textContent=D.bursts.filter(b=>b.peak>=0.01).length||'';
 $('#c-hosts').textContent=D.hosts.length;$('#c-requests').textContent=R.length;$('#c-logs').textContent=D.logsTotal?D.logsTotal.toLocaleString():'';
 function showTab(t,keep){if(has[t]===false)t='overview';document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab==t));
