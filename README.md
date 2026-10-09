@@ -104,4 +104,10 @@ Edit `budgets.json`; `metric` is any key from a session's `summary.json` → `me
 | `publish_reports.py` | copies (optionally redacted) reports into `reports/` |
 | `reports/` | committed reports (full, unredacted: contains tokens, cookies and phone numbers — keep the repo private) |
 
-⚠️ `captures/` contains full payloads, tokens, cookies and phone numbers. It is git-ignored; don't share it as-is.
+## Raw captures in this repo
+`captures/` (raw sessions: recording, stills, HAR, device log, thread data, OCR cache, reports, videos) is committed
+alongside `reports/`. Files over GitHub's 100 MB limit are handled losslessly: large device logs are stored as
+`device.log.gz` (the tools read `.gz` directly) and oversized original recordings use **Git LFS** — run
+`git lfs install` before cloning to get the real video instead of a pointer file.
+
+⚠️ `captures/` and `reports/` contain full payloads, tokens, cookies and phone numbers — keep the repository private.

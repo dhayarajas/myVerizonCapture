@@ -17,6 +17,7 @@ Usage:
 """
 import argparse
 import base64
+import gzip
 import hashlib
 import io
 import bisect
@@ -50,6 +51,17 @@ CAT_PRIORITY = {"api": 0, "auth": 0, "asset": 1, "image": 2, "logging": 3, "anal
 # Screen-state thresholds (fraction of pixels changed between consecutive 10 fps frames,
 # status bar excluded). Calibrated on iOS: a spinner moves ~0.13% of pixels in a ~0.3% box.
 IDLE_FRAC, BUSY_FRAC, BUSY_BOX, NOISE_FRAC, SCREEN_SWAP = 0.0005, 0.006, 0.02, 0.0015, 0.10
+
+
+def zopen(path):
+    """Open a text file, or its .gz sibling if only the compressed copy exists."""
+    if not os.path.exists(path) and os.path.exists(path + ".gz"):
+        path += ".gz"
+    return gzip.open(path, "rt", encoding="utf-8", errors="replace") if path.endswith(".gz") else open(path, encoding="utf-8", errors="replace")
+
+
+def zexists(path):
+    return os.path.exists(path) or os.path.exists(path + ".gz")
 
 
 def parse_ts(s):
@@ -231,7 +243,7 @@ def payload(e, mime):
 
 def load_requests(har, start_ms, end_s, a):
     host_re = re.compile(a.host, re.I) if a.host else None
-    entries = json.load(open(har, encoding="utf-8"))["log"]["entries"]
+    entries = json.load(zopen(har))["log"]["entries"]
     reqs, devices = [], Counter()
     for e in entries:
         dev = e.get("_remoteDeviceIP")
@@ -441,10 +453,10 @@ def parse_biometrics(lines, names):
 
 
 def load_device_log(path, year, start_ms, end_s, a):
-    if not path or not os.path.exists(path):
+    if not path or not zexists(path):
         return [], None, [], {"tasks": [], "bio": [], "canEval": []}
     lines = []
-    for raw in open(path, encoding="utf-8", errors="replace"):
+    for raw in zopen(path):
         raw = re.sub(r"\x1b\[[0-9;]*m", "", raw.rstrip("\n"))
         m = LOG_RE.match(raw)
         if not m:
@@ -1201,10 +1213,10 @@ def lib_cat(lib, in_app):
 
 
 def load_threads(path, start_ms, end_s, app_procs, step=0.25):
-    if not os.path.exists(path):
+    if not zexists(path):
         return None
     ev = []
-    for line in open(path, encoding="utf-8", errors="replace"):
+    for line in zopen(path):
         if not line.startswith("{"):
             continue
         try:

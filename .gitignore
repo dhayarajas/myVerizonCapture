@@ -1,5 +1,9 @@
-captures/
 ios-screen-recorder
 screen-ocr
 __pycache__/
 .DS_Store
+# capture temp files
+captures/.*.log
+captures/**/.ocr/
+# stored compressed instead (device.log.gz) — over GitHub's 100 MB limit
+captures/session-20261009-230842/device.log

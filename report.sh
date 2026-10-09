@@ -26,6 +26,7 @@ SESSION="${SESSION%/}"
 
 if [[ -z "$HAR" ]]; then
   HAR="$SESSION/traffic.har"
+  [[ ! -f "$HAR" && -f "$HAR.gz" ]] && HAR="$HAR.gz"
   if [[ ! -f "$HAR" ]]; then
     echo "No traffic.har in $SESSION — exporting the current Proxyman session..."
     "$PROXYMAN_CLI" export-log -m all -f har -o "$PWD/$HAR" >/dev/null || exit 1
