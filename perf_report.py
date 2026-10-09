@@ -1226,6 +1226,61 @@ def cold_start(screens, launch_t, logs, markers, reqs, bio, can_eval, th):
             "first": out[-1]["to"]}
 
 
+def network_gaps(reqs, end_s, periods, screens, bursts, bio, can_eval, logs, markers, threads, min_gap=0.4):
+    """Stretches with no app request in flight (analytics/tunnels ignored) and what happened meanwhile."""
+    iv = sorted((r.get("issued", r["start"]), r["end"]) for r in reqs
+                if r["cat"] in ("api", "auth", "image", "asset", "logging") and r["dur"] > 0)
+    merged = []
+    for a, b in iv:
+        if merged and a <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], b)
+        else:
+            merged.append([a, b])
+    gaps = []
+    for (a0, a1), (b0, b1) in zip(merged, merged[1:] + [[end_s, end_s]]):
+        g0, g1 = a1, min(b0, end_s)
+        if g1 - g0 < min_gap:
+            continue
+        dur = g1 - g0
+        spin = sum(overlap(p["start"], p["end"], g0, g1) for p in periods)
+        fid = sum(overlap(b["start"], b.get("end", b["start"]), g0, g1) for b in bio)
+        scr = [s_ for s_ in screens if overlap(s_["start"], s_["end"], g0, g1) > 0.05]
+        changes = [b for b in bursts if g0 <= b["start"] < g1]
+        user = [b for b in changes if b.get("trigger") is None]
+        analytics = sum(1 for r in reqs if r["cat"] == "analytics" and g0 <= r["start"] < g1)
+        lg = log_highlights(logs, markers, reqs, g0, g1, bio, can_eval, threads)
+        th = lg.get("threads")
+        tail = b0 >= end_s
+        if fid >= 0.3 * dur:
+            kind, what = "bio", "Face ID prompt"
+        elif spin >= 0.5 * dur:
+            kind, what = "wait", "Spinner on screen with nothing on the network — on-device work"
+        elif tail:
+            kind, what = "idle", "After the last request — screen settled / user idle"
+        elif user or any(x["title"] and not x["loading"] for x in scr):
+            nm = next((x["name"] for x in scr if x["title"] and not x["loading"]), "the screen")
+            kind, what = "user", f"User on “{nm}” (reading / choosing / tapping)"
+        else:
+            kind, what = "idle", "Screen idle between requests"
+        bits = []
+        if fid:
+            bits.append(f"Face ID {fid:.2f}s")
+        if spin >= 0.3:
+            bits.append(f"spinner {spin:.1f}s")
+        titled = [x["name"] for x in scr if x["title"]]
+        if titled and kind != "wait":
+            bits.append(f"on “{titled[0]}”")
+        if user and kind != "bio":
+            bits.append(f"{len(user)} user screen change(s)")
+        if th:
+            bits.append(f"main {th['main']} / bg {th['bg']} log events")
+        gaps.append({"start": round(g0, 3), "end": round(g1, 3), "dur": round(dur, 3), "kind": kind, "what": what,
+                     "label": f"{dur:.2f}s · " + (", ".join(bits[:2]) or what), "bits": bits, "spinner": round(spin, 2),
+                     "faceid": round(fid, 2), "screens": [x["name"] for x in scr], "changes": [round(b["start"], 2) for b in changes],
+                     "userChanges": len(user), "analytics": analytics, "log": lg, "tail": tail})
+    return gaps
+
+
 def log_hist(ts, end_s, step=0.25):
     h = [0] * (int(end_s / step) + 1)
     for t in ts:
@@ -1321,6 +1376,13 @@ def main():
         findings[:] = [f for f in findings if f["kind"] != "launch"]
     for p in periods:
         p["threads"] = thread_summary(threads, p["start"], p["end"])
+    gaps = network_gaps(reqs, end_s, periods, screens, bursts, bio_iv, can_eval, logs, markers, threads)
+    for g in gaps:
+        if g["kind"] == "wait" and g["dur"] >= 0.5:
+            findings.append({"sev": "med" if g["dur"] >= 1 else "low", "title": f"{g['dur']:.2f}s with a spinner but no network activity ({g['start']:.1f}s → {g['end']:.1f}s)",
+                             "impact": g["dur"], "detail": "; ".join(g["bits"]) + ". " + "; ".join(h["text"] for h in g["log"]["highlights"][:3]),
+                             "rec": "Nothing was in flight — the app was working on the device. See the gap in the Timeline waterfall.",
+                             "refs": [], "t": g["start"], "kind": "netgap"})
     if threads:
         main_sync = [x for x in threads["events"] if x["main"] and SYNC_RE.search(x["msg"])]
         if main_sync:
@@ -1380,7 +1442,7 @@ def main():
         "logHist": log_hist(log_t, end_s),
         "errT": [l["t"] for l in logs if l["lvl"] in ("Error", "Fault")],
         "devices": {k or "mac": v for k, v in devices.items()}, "end": end_s,
-        "bio": bio_iv, "taskInfo": taskinfo, "screens": screens,
+        "bio": bio_iv, "taskInfo": taskinfo, "screens": screens, "gaps": gaps,
         "threads": ({"main": threads["main"], "n": threads["threads"], "cats": threads["cats"], "bins": threads["bins"], "step": threads["step"],
                      "mainEvents": [{k: x[k] for k in ("t", "lib", "cat", "msg")} for x in threads["events"] if x["main"]][:3000],
                      "total": len(threads["events"]), "mainTotal": sum(1 for x in threads["events"] if x["main"])} if threads else None), "savings": savings(periods, bursts, R, reqs), "budgets": budgets, "cold": cold,
@@ -1509,6 +1571,8 @@ const thumbAt=(t,after)=>{let b=null;for(const [tt,n] of D.thumbs){if(after?tt>=
   if(!b)b=D.thumbs[after?D.thumbs.length-1:0][1];return D.thumbBase+'/'+b};
 const reqLink=id=>{const r=R[id];return `<a class="j" onclick="openReq(${id})">${esc(r.method)} ${esc(r.short)}${r.op?' ['+esc(r.op)+']':''}</a>`};
 const PHC={'server wait (TTFB)':'#2563eb','connection setup':'#0891b2','download':'#0d9488','waiting for a connection':'#f472b6','on-device work':'#ef4444','Face ID prompt (user)':'#7c3aed','request (no phase data)':'#94a3b8','queued on device':'#f472b6','no request (on-device / user)':'#ef4444'};
+const GAPC={wait:'#ef4444',bio:'#7c3aed',user:'#0891b2',idle:'#94a3b8'};
+const GAPN={wait:'User waiting — spinner, no network',bio:'Face ID prompt',user:'User on screen',idle:'Idle'};
 const TC={'App code':'#0d9488','UI (UIKit)':'#2563eb','WebKit':'#9333ea','Network':'#0891b2','Security & auth':'#d97706','Location':'#65a30d','Prefs & IPC':'#64748b','Other':'#a3a3a3'};
 const msf=v=>v<1?(v*1000).toFixed(0)+' ms':s2(v);
 function phBar(r){const ph=r.ph;if(!ph)return '';const q=r.queue>0.05?r.queue:ph.wait;
@@ -1580,13 +1644,13 @@ if(D.logsTotal){$('#logsub').textContent=`— ${D.logsTotal.toLocaleString()} li
 const on=new Set(['api','auth','image','asset','logging']);
 $('#cats').innerHTML=CAT.map(c=>`<label><input type="checkbox" data-c="${c}" ${on.has(c)?'checked':''}> <span class="pill" style="background:${col(c)}">${c}</span></label>`).join(' ');
 document.querySelectorAll('#cats input').forEach(i=>i.onchange=()=>{i.checked?on.add(i.dataset.c):on.delete(i.dataset.c);draw()});
-$('#leg').innerHTML='<span><i style="background:var(--busy)"></i>loading indicator</span><span><i style="background:var(--change)"></i>screen change</span><span><i style="background:var(--idle)"></i>idle</span><span><i style="border:2px solid var(--fg)"></i>on a critical path</span><span><i style="background:var(--queue)"></i>queued on device (app issued, not yet sent)</span><span><i style="background:var(--gap)"></i>log error</span><span><i style="background:var(--auth)"></i>app marker</span>'+(D.threads?' · threads: '+Object.entries(TC).map(([k,c])=>`<span><i style="background:${c}"></i>${k}</span>`).join(''):'')+'<span><i style="background:#7c3aed"></i>Face ID</span>';
+$('#leg').innerHTML='<span><i style="background:var(--busy)"></i>loading indicator</span><span><i style="background:var(--change)"></i>screen change</span><span><i style="background:var(--idle)"></i>idle</span><span><i style="border:2px solid var(--fg)"></i>on a critical path</span><span><i style="background:var(--queue)"></i>queued on device (app issued, not yet sent)</span><span><i style="background:var(--gap)"></i>log error</span><span><i style="background:var(--auth)"></i>app marker</span>'+(D.threads?' · threads: '+Object.entries(TC).map(([k,c])=>`<span><i style="background:${c}"></i>${k}</span>`).join(''):'')+'<span><i style="background:#7c3aed"></i>Face ID</span>'+((D.gaps||[]).length?' · no-network gaps: '+Object.entries(GAPN).map(([k,n])=>`<span><i style="background:${GAPC[k]}"></i>${n}</span>`).join(''):'');
 const crit=new Set();[...D.periods,...D.bursts].forEach(p=>(p.chain||[]).forEach(c=>c.kind=='req'&&crit.add(c.id)));
 $('#zoom').oninput=draw;
 function draw(){const pxs=+$('#zoom').value,W=Math.ceil(D.end*pxs)+40,X=t=>t*pxs+4,FH=96,RH=15;
- const rows=R.filter(r=>on.has(r.cat));const lanes=[['Screen',FH],['Screens',RH+4],['Screen state',RH],['Loading / render',RH]];if(D.threads){lanes.push(['Main thread',RH*2]);lanes.push(['Background threads',RH*2])}if(D.logsTotal)lanes.push(['App log',RH*2]);lanes.push(['Time (s)',RH]);
+ const rows=R.filter(r=>on.has(r.cat));const lanes=[['Screen',FH],['Screens',RH+4],['Screen state',RH],['Loading / render',RH]];if((D.gaps||[]).length)lanes.push(['No network',RH+4]);if(D.threads){lanes.push(['Main thread',RH*2]);lanes.push(['Background threads',RH*2])}if(D.logsTotal)lanes.push(['App log',RH*2]);lanes.push(['Time (s)',RH]);
  let y=0,top={};lanes.forEach(([n,h])=>{top[n]=y;y+=h});const H=y+rows.length*RH+6;
- let s=`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-size="10" font-family="system-ui">`;
+ let s=`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-size="10" font-family="system-ui"><defs>${Object.entries(GAPC).map(([k,c])=>`<pattern id="hatch-${k}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="${c}" opacity=".12"/><line x1="0" y1="0" x2="0" y2="6" stroke="${c}" stroke-width="2" opacity=".45"/></pattern>`).join('')}</defs>`;
  const tw=FH*0.46,step=Math.max(0.5,Math.ceil(tw/pxs/0.5)*0.5);
  for(let t=0;t<=D.end;t+=step)s+=`<image href="${thumbAt(t)}" x="${X(t)}" y="2" width="${tw}" height="${FH-4}" preserveAspectRatio="xMinYMin meet"/>`;
  D.states.forEach(([a,b,l])=>{if(l!='idle')s+=`<rect x="${X(a)}" y="${top['Screen state']+2}" width="${Math.max(1,(b-a)*pxs)}" height="${RH-4}" fill="var(--${l})"/>`});
@@ -1604,15 +1668,19 @@ function draw(){const pxs=+$('#zoom').value,W=Math.ceil(D.end*pxs)+40,X=t=>t*pxs
   D.marks.forEach(m=>s+=`<path d="M${X(m.t)} ${yb+1} l4 0 l-4 6z" fill="var(--auth)"/><text x="${X(m.t)+5}" y="${yb+8}" fill="var(--auth)">${esc(m.label)}</text>`)}
  for(let t=0;t<=D.end;t+=(pxs<20?5:1))s+=`<line x1="${X(t)}" x2="${X(t)}" y1="${top['Time (s)']}" y2="${H}" stroke="var(--line)"/><text x="${X(t)+2}" y="${top['Time (s)']+11}" fill="var(--mut)">${t}</text>`;
  D.periods.forEach(p=>s+=`<rect x="${X(p.start)}" y="${top['Time (s)']}" width="${p.dur*pxs}" height="${H}" fill="var(--busy)" opacity=".08"/>`);
+ (D.gaps||[]).forEach((g,i)=>{const gc=GAPC[g.kind]||'#94a3b8',x0=X(g.start),w=Math.max(2,g.dur*pxs);
+  s+=`<rect x="${x0}" y="${y}" width="${w}" height="${H-y}" fill="url(#hatch-${g.kind})" opacity=".55" data-gap="${i}" style="cursor:pointer"/>`;
+  s+=`<rect x="${x0}" y="${top['No network']+1}" width="${w}" height="${RH+2}" rx="3" fill="${gc}" data-gap="${i}" style="cursor:pointer"/>`;
+  if(w>40)s+=`<svg x="${x0+3}" y="${top['No network']}" width="${w-6}" height="${RH+4}" style="pointer-events:none"><text x="0" y="${RH-1}" fill="#fff" font-weight="600">${esc(g.label)}</text></svg>`});
  rows.forEach((r,i)=>{const yy=y+i*RH+2,w=Math.max(2,r.dur*pxs);
   if(r.issued!=null&&r.queue>0.05)s+=`<rect x="${X(r.issued)}" y="${yy+3}" width="${r.queue*pxs}" height="${RH-10}" fill="var(--queue)" class="rq" data-id="${r.id}" style="cursor:pointer"/>`;
   s+=`<rect class="rq" data-id="${r.id}" x="${X(r.start)}" y="${yy}" width="${w}" height="${RH-4}" rx="2" fill="${col(r.cat)}" ${crit.has(r.id)?'stroke="var(--fg)" stroke-width="1.5"':''} style="cursor:pointer"/>`;
   if(r.dur*pxs<200)s+=`<text x="${X(r.start)+w+3}" y="${yy+9}" fill="var(--mut)">${(r.dur*1000).toFixed(0)}ms</text>`});
  s+=`<line id="cur" y1="0" y2="${H}" stroke="var(--high)" opacity=".6"/></svg>`;$('#tlR').innerHTML=s;
  $('#tlL').innerHTML=lanes.map(([n,h])=>`<div style="height:${h}px;line-height:${h}px;font-weight:600">${n}</div>`).join('')+rows.map(r=>`<div onclick="openReq(${r.id})" data-id="${r.id}"><span class="pill" style="background:${col(r.cat)}">${r.method}</span> ${esc(r.host.split('.').slice(-2,-1)[0]||'')} ${esc(r.short)}</div>`).join('');
- const svg=$('#tlR svg');svg.onclick=e=>{const id=e.target.dataset.id;if(id)openReq(+id)};
+ const svg=$('#tlR svg');svg.onclick=e=>{const id=e.target.dataset.id,gi=e.target.dataset.gap;if(id)openReq(+id);else if(gi!=null)openGap(+gi)};
  svg.onmousemove=e=>{const bx=svg.getBoundingClientRect(),t=Math.max(0,(e.clientX-bx.left-4)/pxs);$('#cur').setAttribute('x1',e.clientX-bx.left);$('#cur').setAttribute('x2',e.clientX-bx.left);
-  const id=e.target.dataset&&e.target.dataset.id;if(id){$('#peek').style.display='none';showTip(+id,e)}else{hideTip();$('#peek').style.display='block';$('#peek img').src=thumbAt(t);$('#peek div').textContent=s2(t)}};
+  const id=e.target.dataset&&e.target.dataset.id,gi=e.target.dataset&&e.target.dataset.gap;if(id){$('#peek').style.display='none';showTip(+id,e)}else if(gi!=null){$('#peek').style.display='none';showGapTip(+gi,e)}else{hideTip();$('#peek').style.display='block';$('#peek img').src=thumbAt(t);$('#peek div').textContent=s2(t)}};
  svg.onmouseleave=()=>{$('#peek').style.display='none';hideTip()};
  $('#tlL').onmousemove=e=>{const d=e.target.closest('[data-id]');d?showTip(+d.dataset.id,e):hideTip()};$('#tlL').onmouseleave=hideTip}
 // hover card
@@ -1643,9 +1711,24 @@ function showTip(id,e){const r=R[id],tip=$('#tip'),q=r.issued!=null&&r.queue>0.0
  <div class="iss">${iss.length?iss.map(([sv,t])=>`<div><span class="sev ${sv}" style="font-size:10px;padding:1px 5px">${sv}</span> ${esc(t)}</div>`).join(''):'<div class="ok">No issues flagged for this request.</div>'}
  <div class="mut" style="margin-top:4px">Click for request / response payloads</div></div>`;
  tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;
- let x=e.clientX+16,y=e.clientY+16;if(x+w>innerWidth-8)x=e.clientX-w-16;if(y+h>innerHeight-8)y=Math.max(8,innerHeight-h-8);
+ let x=e.clientX+16,y=e.clientY+16;if(x+w>innerWidth-8)x=e.clientX-w-16;if(y+h>innerHeight-8)y=innerHeight-h-8;y=Math.max(8,y);
  tip.style.left=Math.max(8,x)+'px';tip.style.top=y+'px'}
 function hideTip(){$('#tip').style.display='none'}
+function gapBody(g,full){const lg=g.log||{},hl=(lg.highlights||[]).slice(0,full?40:6),th=lg.threads;
+ return `<div class="row"><span>Screen</span><span>${esc([...new Set(g.screens)].join(' → ')||'—')}</span></div>
+ ${g.spinner?`<div class="row"><span>Spinner visible</span><span><b>${s2(g.spinner)}</b></span></div>`:''}${g.faceid?`<div class="row"><span>Face ID prompt</span><span><b>${s2(g.faceid)}</b></span></div>`:''}
+ ${g.changes.length?`<div class="row"><span>Screen changes</span><span>${g.changes.map(s2).join(', ')}${g.userChanges?' ('+g.userChanges+' user)':''}</span></div>`:''}
+ ${g.analytics?`<div class="row"><span>Analytics beacons</span><span>${g.analytics}</span></div>`:''}
+ ${th?`<div class="row"><span>Threads</span><span>main ${th.main} · background ${th.bg} on ${th.bgThreads}</span></div><div style="margin:3px 0">${catChips(th.mainCats.slice(0,3))}</div>`:''}
+ ${lg.lines?`<div class="row"><span>App log</span><span>${lg.lines.toLocaleString()} lines · ${lg.errors} errors</span></div>`:''}
+ ${hl.length?`<div class="iss">${hl.map(h=>`<div><span class="mono">${s2(h.t)}</span> <span class="b ${h.sev}" style="font-size:9px;color:#fff;border-radius:3px;padding:0 4px;background:${{crit:'var(--high)',error:'var(--high)',warn:'var(--med)',key:'var(--auth)',net:'var(--api)',app:'var(--image)'}[h.sev]||'var(--info)'}">${SEVN[h.sev]||h.sev}</span> ${esc(h.text)}</div>`).join('')}</div>`:''}`}
+function showGapTip(i,e){const g=D.gaps[i],tip=$('#tip');
+ tip.innerHTML=`<div class="tt"><img src="${thumbAt(g.start+g.dur/2)}"><div style="flex:1;min-width:0"><h5><span class="pill" style="background:${GAPC[g.kind]}">${esc(GAPN[g.kind])}</span> ${s2(g.dur)} with no network</h5>
+  <div class="u">${s2(g.start)} → ${s2(g.end)} · ${esc(g.what)}</div>${gapBody(g,false)}</div></div><div class="mut" style="margin-top:4px">Click for full details</div>`;
+ tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;let x=e.clientX+16,y=e.clientY+16;if(x+w>innerWidth-8)x=e.clientX-w-16;if(y+h>innerHeight-8)y=innerHeight-h-8;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
+function openGap(i){const g=D.gaps[i];drawer(`<h3 style="margin-right:24px"><span class="pill" style="background:${GAPC[g.kind]}">${esc(GAPN[g.kind])}</span> ${s2(g.dur)} with no network · ${s2(g.start)} → ${s2(g.end)}</h3>
+ <p>${esc(g.what)}</p><div class="strip"><figure><img src="${thumbAt(g.start)}"><figcaption>start ${s2(g.start)}</figcaption></figure><figure><img src="${thumbAt(g.start+g.dur/2)}"><figcaption>middle</figcaption></figure><figure><img src="${thumbAt(g.end)}"><figcaption>end ${s2(g.end)}</figcaption></figure></div>
+ <div id="tip-like" style="font-size:12px">${gapBody(g,true)}</div>${threadPanel(g.log&&g.log.threads)}`)}
 draw();
 // drawer
 function drawer(h){$('#dbody').innerHTML=h;$('#drawer').classList.add('open')}
@@ -1743,7 +1826,8 @@ if(D.logsTotal){const ev=n=>D.life.find(e=>e.event==n),L0=ev('Launch requested')
  summ('timeline',[kc(s2(D.end),'Recording'),kc(R.length,'Requests',Object.entries(cats).map(([k,v])=>k+' '+v).join(' · ')),
   kc(pk,'Peak concurrent requests','at '+s2(pkT)),kc(s2(busy),'API/auth calls in flight',`${(busy/D.end*100).toFixed(0)}% of the recording`),
   kc(s2(load),'Loading indicator on screen','',load/D.end>=0.25?'bad':''),...(D.logsTotal?[kc((Math.max(...D.logHist)*4).toLocaleString()+'/s','Peak app log rate')]:[])],
-  [...(bb?[`Busiest second: <b>${bb[0]}–${+bb[0]+1}s</b> with ${bb[1]} requests started.`]:[]),
+  [...((D.gaps||[]).length?[`<b>${D.gaps.length}</b> no-network gaps totalling <b>${s2(sum(D.gaps.map(g=>g.dur)))}</b>; <b>${s2(sum(D.gaps.filter(g=>g.kind=='wait').map(g=>g.dur)))}</b> of it with a spinner on screen (user waiting on on-device work), ${s2(sum(D.gaps.map(g=>g.faceid)))} Face ID. Hover the hatched bands for what was happening.`]:[]),
+   ...(bb?[`Busiest second: <b>${bb[0]}–${+bb[0]+1}s</b> with ${bb[1]} requests started.`]:[]),
    'Pink = waited on the device · outlined = on a critical path · shaded columns = loading indicator. Hover a bar for timing and issues; click for payloads.'])}
 // hosts
 {const H=D.hosts,api=H.filter(h=>(h.cats.api||0)+(h.cats.auth||0)>0),sl=[...api].sort((a,b)=>b.p50-a.p50),hv=[...H].sort((a,b)=>b.bytes-a.bytes)[0];
