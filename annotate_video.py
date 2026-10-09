@@ -9,6 +9,7 @@ Usage: python3 annotate_video.py [session-dir] [--fps 10]
 import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -138,14 +139,39 @@ def panel(D, t, F):
         d.text((28, y), f"KEY FINDINGS SO FAR  ({len(seen)})", fill="#94a3b8", font=F["xs"])
         y += 28
     limit = PH - 150
-    for f in seen:
-        tl = wrap(f["title"], F["xs2"], PW - 200)
-        title = tl[:2] if len(tl) <= 2 else [tl[0], tl[1] + " …"]
-        fl = wrap("→ " + f["rec"], F["xs"], PW - 150)
-        fix = fl[:1] if len(fl) <= 1 else [fl[0] + " …"]
-        h = 10 + 23 * len(title) + 21 * len(fix) + 8
-        if y + h > limit:
+
+    def short_title(f):
+        x = re.sub(r"\s*\(\d+\.\d+s → \d+\.\d+s\)", "", f["title"])
+        return x.replace("Slow call on critical path: ", "Slow: ").replace(" on the device before being sent", " on device")
+
+    def rows_for(mode):
+        out = []
+        for f in seen:
+            if mode == "full" or (mode == "mixed" and f["sev"] == "high"):
+                tl = wrap(f["title"], F["xs2"], PW - 200)
+                title = tl[:2] if len(tl) <= 2 else [tl[0], tl[1] + " …"]
+                fl = wrap("→ " + f["rec"], F["xs"], PW - 150)
+                fix = fl[:1] if len(fl) <= 1 else [fl[0] + " …"]
+            else:
+                tl = wrap(short_title(f), F["xs2"], PW - 200)
+                title, fix = [tl[0] + (" …" if len(tl) > 1 else "")], []
+            out.append((f, title, fix, 10 + 23 * len(title) + 21 * len(fix) + 8))
+        return out
+    room = limit - y
+    for mode in ("full", "mixed", "compact"):
+        rows = rows_for(mode)
+        if sum(h + 8 for *_, h in rows) <= room:
             break
+    shown, more, used = [], [], 0
+    fresh = [r for r in rows if t - r[0]["t"] <= 2.0]
+    for r in rows:
+        need = r[3] + 8 + (sum(x[3] + 8 for x in fresh if x not in shown and x is not r) if r not in fresh else 0)
+        if used + need + 34 <= room or r in fresh:
+            shown.append(r)
+            used += r[3] + 8
+        else:
+            more.append(r[0])
+    for f, title, fix, h in shown:
         new = t - f["t"] <= 2.0
         d.rounded_rectangle((28, y, PW - 28, y + h), 8, fill="#1e293b" if not new else "#334155", outline=col[f["sev"]] if new else None, width=2)
         d.rounded_rectangle((38, y + 9, 92, y + 31), 5, fill=col[f["sev"]])
@@ -160,6 +186,11 @@ def panel(D, t, F):
         if new:
             d.text((PW - 84, y + 9), "NEW", fill="#fde047", font=F["xs"])
         y += h + 8
+    if more:
+        txt = wrap(f"+{len(more)} more: " + " · ".join(short_title(f) for f in more), F["xs"], PW - 70)
+        for ln in txt[:2]:
+            d.text((32, y), ln if len(txt) <= 2 or ln is not txt[1] else ln + " …", fill="#94a3b8", font=F["xs"])
+            y += 22
     # mini timeline
     ty, x0, x1, end = PH - 92, 28, PW - 28, max(0.1, D["end"])
     X = lambda v: x0 + (x1 - x0) * min(1, max(0, v / end))
