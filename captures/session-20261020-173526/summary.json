@@ -1,0 +1,682 @@
+{
+ "session": "2026-10-20T12:05:27Z",
+ "device": "Kavi iPhone",
+ "metrics": {
+  "recording": 287.6,
+  "spinner_total": 29.4,
+  "spinner_longest": 7.7,
+  "api_p50": 0.39,
+  "api_p95": 1.46,
+  "requests": 874,
+  "api_calls": 272,
+  "bytes": 36675683,
+  "dup_image_bytes": 0,
+  "queued_max": 1.386,
+  "launch_to_first_content": 14.46,
+  "launch_to_first_api": 3.62,
+  "launch_to_did_finish_launching": 2.95,
+  "cold_start_total": 1.96,
+  "cold:Launch \u2192 Welcome back": 1.96,
+  "spinner:Get answers quickly (loading) \u2192 Your October bill went up": 3.0,
+  "spinner:Documents and receipts (loading) \u2192 Documents and receipts": 7.7,
+  "spinner:Documents and receipts (loading) \u2192 Documents and receipts #2": 4.1,
+  "spinner:Waiting for v1/interact": 4.0,
+  "spinner:* Getanswers quickly (loading) \u2192 Add a new payment method": 2.6,
+  "spinner:Loader \u2192 Blank screen": 1.5,
+  "spinner:* Getanswers quickly (loading) \u2192 Web: digital/creditcardmlp.html": 1.4,
+  "spinner:Web: digital/creditcardmlp.html (loading) \u2192 Web: digital/creditcardmlp.html": 1.1,
+  "spinner:Loader \u2192 Web: digital/creditcardmlp.html": 0.9,
+  "spinner:Waiting for peripheralsservice/fetchFeatureFlags": 0.9,
+  "spinner:Waiting for l2/webview": 1.1,
+  "spinner:Made for you (loading) \u2192 Protection": 1.1,
+  "render:Your October bill went up \u2192 Monthly": 3.9,
+  "render:Fed Universal Service Charge \u2192 Taxes & gov fees O": 1.1,
+  "render:Your current balance \u2192 Web: bill/overview": 2.7,
+  "render:Documents and receipts (loading) \u2192 My Bill V": 6.2,
+  "render:My Bill V \u2192 Web: bill/docs": 4.6,
+  "render:Render after getpdf/vzdocapp": 2.2,
+  "render:Web: bill/docs \u2192 Aug 07, 2026 My Bill": 2.2,
+  "render:* Getanswers quickly (loading) \u2192 Web: ui/unifiednbs": 1.2,
+  "render:Render after peripheralsservice/fetchFeatureFlags": 5.5,
+  "render:Bill history \u2192 Bill details": 3.1,
+  "render:Render after valueCenter/savings_boost_feedback": 3.9,
+  "render:Maximize your savings \u2192 Earn 4%": 1.2,
+  "render:Earn 4% \u2192 Web: digital/creditcardmlp.html": 1.8,
+  "render:Earn4% \u2192 Web: digital/creditcardmlp.html": 1.2,
+  "render:Earn 4% \u2192 Documents and receipts": 1.7,
+  "render:Your October bill went up \u2192 Bill changes breakdown": 1.7,
+  "render:Big deals. Top products \u2192 More security, less": 4.4,
+  "hitch_count": 40,
+  "hitch_ms": 4308,
+  "tap_feedback_max": 1.777
+ },
+ "endpoints": {
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/bill/overview": {
+   "dur": [
+    1.92,
+    0.672,
+    0.765,
+    1.35
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/public/60d313817b3e29acbb886a91b435cba0f60638b994d6": {
+   "dur": [
+    1.031
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7/MGstPDcC/KE1Jb1c/Qc18V": {
+   "dur": [
+    1.585
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/public/60d313817b3e29acbb886a91b435cba0f60638b994d6/h/b90dea8b4dec42619841bf216443707a": {
+   "dur": [
+    1.34
+   ],
+   "ttfb": []
+  },
+  "POST sanalytics.verizon.com/ee/or2/v1/interact": {
+   "dur": [
+    0.264,
+    0.282,
+    0.289,
+    0.266,
+    0.277,
+    0.27,
+    0.268,
+    0.264,
+    0.277,
+    0.287,
+    0.265,
+    0.28,
+    0.275,
+    0.261,
+    0.274,
+    0.266,
+    0.264,
+    0.278,
+    0.275,
+    0.263,
+    0.274,
+    0.274,
+    0.27,
+    0.277,
+    0.27,
+    0.266,
+    0.274,
+    0.276,
+    0.259,
+    0.277,
+    0.266,
+    0.264,
+    0.156,
+    0.266,
+    0.277,
+    0.275,
+    0.27,
+    0.278,
+    0.286,
+    0.276,
+    0.264,
+    0.27,
+    0.28,
+    0.276,
+    0.266,
+    0.267,
+    0.261,
+    0.469,
+    0.275,
+    0.27,
+    0.26,
+    0.279,
+    0.268,
+    0.27,
+    0.223,
+    0.265,
+    0.263,
+    0.277,
+    0.268,
+    0.286,
+    0.266,
+    0.267,
+    0.294,
+    0.474,
+    0.279,
+    0.277
+   ],
+   "ttfb": [
+    0.33,
+    0.337,
+    0.344,
+    0.056,
+    0.055
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/soi/tagging": {
+   "dur": [
+    0.968,
+    0.337,
+    0.367,
+    0.36,
+    0.358,
+    0.416,
+    0.389,
+    0.407,
+    0.507,
+    0.384
+   ],
+   "ttfb": [
+    0.33,
+    0.341
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/nextgen/viewbill/importantUpdates": {
+   "dur": [
+    1.211,
+    1.169,
+    0.861,
+    0.663
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/nextgen/viewbill/savings": {
+   "dur": [
+    0.962,
+    0.584,
+    0.63,
+    0.469
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/nextgen/viewbill/getPendingCredits": {
+   "dur": [
+    0.476,
+    0.629,
+    0.444,
+    0.483
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/nextgen/viewbill/relatedInfo": {
+   "dur": [
+    0.848,
+    0.433,
+    0.505,
+    0.414,
+    0.438,
+    0.442
+   ],
+   "ttfb": [
+    0.46
+   ]
+  },
+  "POST www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7/MGstPDcC/KE1Jb1c/Qc18V": {
+   "dur": [
+    0.05,
+    0.048,
+    0.059,
+    0.05,
+    0.059,
+    0.054,
+    0.049,
+    0.043,
+    0.054,
+    0.061,
+    0.055,
+    0.048,
+    0.088,
+    0.04,
+    0.039,
+    0.049,
+    0.403,
+    0.058,
+    0.069,
+    0.054,
+    0.057,
+    0.102,
+    0.066,
+    0.052,
+    0.042,
+    0.049,
+    0.045,
+    0.578,
+    0.05,
+    0.049,
+    0.05,
+    0.049,
+    0.042,
+    0.07,
+    0.056,
+    0.05,
+    0.083,
+    0.04,
+    0.052,
+    0.053,
+    0.065
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/bill/nextgen/viewbill/getRewardsBenefits": {
+   "dur": [
+    0.997,
+    0.736,
+    0.9,
+    0.46
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/peripheralsservice/fetchFeatureFlags": {
+   "dur": [
+    0.839,
+    0.623,
+    0.434,
+    0.422,
+    0.393,
+    0.395,
+    0.572,
+    0.484,
+    0.431,
+    0.399,
+    0.409,
+    0.392,
+    0.4,
+    0.486,
+    0.677,
+    0.424,
+    0.505,
+    0.428,
+    0.455,
+    0.434,
+    0.452,
+    0.431,
+    0.454,
+    0.409
+   ],
+   "ttfb": [
+    0.342,
+    0.342,
+    0.471
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/bill/billchanges": {
+   "dur": [
+    0.877,
+    0.908
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/bill/docs/": {
+   "dur": [
+    0.554,
+    0.391,
+    0.404,
+    0.714
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/bill/docs/landingpage": {
+   "dur": [
+    0.724,
+    0.725,
+    0.741,
+    0.517
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/bill/docs/getdocslist": {
+   "dur": [
+    5.784,
+    3.232,
+    1.009,
+    1.13
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/bill/docs/getpdf/vzdocapp": {
+   "dur": [
+    2.429,
+    0.959,
+    0.948,
+    1.109,
+    1.109,
+    0.935
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/bill/history/": {
+   "dur": [
+    1.037,
+    0.409,
+    0.383
+   ],
+   "ttfb": [
+    0.175
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/bill/soi/tagging": {
+   "dur": [
+    0.353,
+    0.387,
+    0.156
+   ],
+   "ttfb": [
+    0.336
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/bill/billpaymenthistory/header_section": {
+   "dur": [
+    0.501,
+    0.563,
+    0.155
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/bill/billpaymenthistory/bill_history": {
+   "dur": [
+    0.64,
+    0.686,
+    0.155
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/bill/billpaymenthistory/useful_Links": {
+   "dur": [
+    0.557,
+    0.419,
+    0.154
+   ],
+   "ttfb": [
+    0.35
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/unifiednbs/": {
+   "dur": [
+    1.086
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/unifiednbs/selfserve/estimatenextbill/ondemand": {
+   "dur": [
+    1.028
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/selfserve/tagging/readDL": {
+   "dur": [
+    0.794
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/payment/settings/": {
+   "dur": [
+    0.72,
+    0.426
+   ],
+   "ttfb": [
+    0.058
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/payment/soi/tagging": {
+   "dur": [
+    0.934,
+    0.342,
+    0.236
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/payment/autopay-redesign/lp": {
+   "dur": [
+    1.549,
+    0.236
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/payment/autopay-redesign/setupAutoPayChoosePayment": {
+   "dur": [
+    1.495,
+    0.235
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/payment/walletmanagement/addPayment": {
+   "dur": [
+    0.682
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/payment/wallet-autopayredesign/retrieve-payment-methods": {
+   "dur": [
+    0.786
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/payment/wallet-autopayredesign/retrieve-available-paths": {
+   "dur": [
+    1.201
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/bill/valuecenter": {
+   "dur": [
+    2.644,
+    2.149
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/valueCenter/savings_boost_cards": {
+   "dur": [
+    2.026
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/valueCenter/savings_boost_feedback": {
+   "dur": [
+    0.491,
+    0.43
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/solutions-and-services/verizon-visa-card": {
+   "dur": [
+    1.666
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/financial-services/verizon-visa-card/": {
+   "dur": [
+    0.611,
+    1.049
+   ],
+   "ttfb": [
+    0.577
+   ]
+  },
+  "GET www.verizon.com/sales/digital/creditcardmlp.html": {
+   "dur": [
+    2.359,
+    0.087
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7DYmD9D/JGkkPDcC/FFUpOAV/mVy4": {
+   "dur": [
+    1.046,
+    0.056
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/peripheralsservice/jsNotifyAsDynamic": {
+   "dur": [
+    0.361,
+    0.392,
+    0.362,
+    0.34,
+    0.351,
+    0.381
+   ],
+   "ttfb": [
+    0.347
+   ]
+  },
+  "POST www.verizon.com/soe/digital/auth/accountlandingservice/isaac/getoffers": {
+   "dur": [
+    1.233,
+    1.212
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7DYmD9D/JGkkPDcC/FFUpOAV/mVy4": {
+   "dur": [
+    0.71,
+    0.397,
+    0.386,
+    0.398,
+    0.677,
+    0.626,
+    0.414,
+    0.406,
+    0.401,
+    0.366,
+    0.375,
+    0.382,
+    0.325
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/omnidlservice/readDL [mfapp store]": {
+   "dur": [
+    0.527,
+    0.36
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/accountlandingservice/isaac/createapplication": {
+   "dur": [
+    1.058,
+    1.106
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/prospect/cartservice/cart/getNSAThrottleList": {
+   "dur": [
+    0.405,
+    0.39
+   ],
+   "ttfb": [
+    0.328
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/l2/webview": {
+   "dur": [
+    1.328
+   ],
+   "ttfb": [
+    1.409
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/mvaFeedback": {
+   "dur": [
+    1.743
+   ],
+   "ttfb": [
+    1.755
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/store/my-addons": {
+   "dur": [
+    1.926,
+    1.46
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/products/producthub/tagging": {
+   "dur": [
+    0.539,
+    0.551,
+    0.366
+   ],
+   "ttfb": [
+    0.343
+   ]
+  },
+  "GET www.verizon.com/nextgendigital/secure/products-perks": {
+   "dur": [
+    1.237
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/store/products-perks/category/protection": {
+   "dur": [
+    0.047
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/secure/products-perks/category/protection": {
+   "dur": [
+    1.451
+   ],
+   "ttfb": []
+  }
+ },
+ "condition": "default",
+ "build": {
+  "appVersion": "22.1.1",
+  "build": null,
+  "os": "26.6.1",
+  "device": "iPhone"
+ },
+ "budgets": [
+  {
+   "label": "Cold start (launch \u2192 first screen)",
+   "metric": "cold_start_total",
+   "max": 3.0,
+   "value": 1.96,
+   "pass": true
+  },
+  {
+   "label": "Launch \u2192 first API call",
+   "metric": "launch_to_first_api",
+   "max": 1.0,
+   "value": 3.62,
+   "pass": false
+  },
+  {
+   "label": "Sign-in spinner",
+   "metric": "spinner:Sign-in (Face ID)",
+   "max": 6.0,
+   "value": null,
+   "pass": null
+  },
+  {
+   "label": "Longest spinner",
+   "metric": "spinner_longest",
+   "max": 5.0,
+   "value": 7.7,
+   "pass": false
+  },
+  {
+   "label": "Total spinner time",
+   "metric": "spinner_total",
+   "max": 10.0,
+   "value": 29.4,
+   "pass": false
+  },
+  {
+   "label": "API p95",
+   "metric": "api_p95",
+   "max": 2.0,
+   "value": 1.46,
+   "pass": true
+  },
+  {
+   "label": "Max on-device queueing",
+   "metric": "queued_max",
+   "max": 0.3,
+   "value": 1.386,
+   "pass": false
+  }
+ ]
+}
