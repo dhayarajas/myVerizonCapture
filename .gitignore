@@ -7,3 +7,11 @@ captures/.*.log
 captures/**/.ocr/
 # stored compressed instead (device.log.gz) — over GitHub's 100 MB limit
 captures/session-20261009-230842/device.log
+# raw copies over 100 MB — stored as .gz instead
+captures/session-20261020-164145/device.log
+captures/session-20261020-171547/device.log
+captures/session-20261020-173526/device.log
+captures/session-20261020-185153/device.log
+captures/session-20261020-170150/traffic.har
+captures/session-20261020-171547/traffic.har
+captures/session-20261020-173526/traffic.har
