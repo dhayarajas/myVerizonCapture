@@ -140,6 +140,8 @@ final class Recorder: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     }
 
     func stop(_ done: @escaping () -> Void) {
+        // Ctrl+C reaches us twice (terminal SIGINT + capture.sh's forwarded kill) — finish only once.
+        guard !stopping else { return }
         stopping = true
         guard let w = writer, let inp = input else {
             print("No frames were received. Make sure the phone is unlocked and the screen is on.")

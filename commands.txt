@@ -1,0 +1,102 @@
+myVerizonCapture — command cheat sheet
+=======================================
+Everything goes through ./run.sh  (./run.sh help prints this list too).
+SESSION can be a path (captures/session-20261009-230842), just the stamp (20261009-230842),
+or "latest" / left out for the newest session.
+
+
+BEFORE A CAPTURE
+----------------
+./run.sh doctor                         check iPhone on USB, QuickTime closed, ffmpeg, Python deps, Proxyman
+./run.sh build                          (re)compile ios-screen-recorder + screen-ocr after editing the .swift files
+idevice_id -l                           should print the iPhone's UDID; empty = phone not connected/trusted
+
+Checklist: iPhone on USB cable, unlocked, "Trust This Mac" accepted, QuickTime Player quit,
+Proxyman running with the phone proxied + SSL Proxying on. Clear Proxyman's session first so the
+HAR holds only this run.
+
+
+CAPTURE  (use the app, then Ctrl+C once to stop recording)
+-------
+./run.sh capture                        full run: screen + device log + threads + HAR -> report + annotated video
+./run.sh capture --no-video             skip the annotated video (fastest; make it later with ./run.sh video)
+./run.sh capture --app myverizonEnterprise
+                                        app process name, if auto-detection picks the wrong process
+./run.sh capture --network 3G           Proxyman Network Conditions on during the run, tagged "3G"
+                                        (set the throttling profile once in Proxyman -> Tools -> Network Conditions)
+./run.sh capture --no-open              don't open the report/video when done
+./run.sh capture --network LTE --no-video --app myverizonEnterprise
+                                        options combine
+
+Output: captures/session-<stamp>/  report.html, annotated.mp4, annotated-1080p.mp4, screen.mp4,
+        traffic.har, device.log, threads.ndjson, summary.json
+
+Ctrl+C during the annotated-video step only cancels the video; the report is already written.
+If no new recording was made (phone not found), nothing is processed and older sessions are left alone.
+
+
+REBUILD FROM AN EXISTING SESSION
+--------------------------------
+./run.sh report                         rebuild report.html for the newest session
+./run.sh report 20261009-230842         … for a specific session
+./run.sh report 20261009-230842 --video rebuild report + annotated video together
+./run.sh report latest --har other.har  use a different HAR
+./run.sh report latest --app myverizonEnterprise
+./run.sh report latest --no-open
+
+./run.sh video                          annotated.mp4 (2320x1304) + annotated-1080p.mp4 for the newest session
+./run.sh video 20261009-211154          … for a specific session
+./run.sh video latest --no-open
+
+./run.sh threads                        re-pull thread data from the phone (the phone only keeps it a while —
+                                        do it soon after the capture; capture does it automatically)
+
+
+COMPARE RUNS
+------------
+./run.sh compare                        all sessions -> captures/comparison.html (budgets, median/p90, endpoints)
+./run.sh compare 20261009-204735 20261009-230842
+./run.sh compare-video 20261009-211154 20261009-230842
+                                        side-by-side video aligned at launch -> captures/comparison.mp4
+./run.sh compare-video A B captures/wifi-vs-3g.mp4
+
+
+BROWSE / SHARE
+--------------
+./run.sh list                           sessions and what each has (report / video / HAR / threads / network)
+./run.sh open [SESSION]                 open report.html
+./run.sh play [SESSION]                 open annotated.mp4 (or screen.mp4 if no video yet)
+./run.sh publish                        copy all reports into reports/ for committing
+./run.sh publish --redact               shareable copy: masks tokens, cookies, ids, phone numbers, emails;
+                                        blurs phone numbers in videos/thumbnails
+./run.sh publish --redact 20261009-230842
+
+
+TYPICAL WORKFLOWS
+-----------------
+Baseline run with video:        ./run.sh doctor && ./run.sh capture
+Quick iteration, video later:   ./run.sh capture --no-video   ...   ./run.sh video
+Wi-Fi vs throttled:             ./run.sh capture  ;  ./run.sh capture --network 3G
+                                ./run.sh compare-video <wifi-stamp> <3g-stamp>
+Share with the team:            ./run.sh publish --redact  (then commit reports/)
+
+
+UNDERLYING SCRIPTS (run.sh calls these; still usable directly)
+-------------------
+./capture.sh [app]        env: NETWORK=3G  ANNOTATE=0  NO_OPEN=1
+./report.sh [session] [har] [-- perf_report.py options]   env: ANNOTATE=1  NO_OPEN=1
+./annotate.sh [session] | --compare A B [out.mp4]
+./compare.sh [session ...]
+./pull_threads.sh [session]
+python3 perf_report.py <har> <session> [--device-log F] [--app-process RE] [--host RE] [--all-clients] [--offset-ms N]
+python3 publish_reports.py [--redact] [session ...]
+Budgets: edit budgets.json (metric = any key in a session's summary.json -> metrics)
+
+
+TROUBLESHOOTING
+---------------
+"No iPhone on USB"              cable/port, unlock, re-accept Trust (Settings > General > Transfer or Reset >
+                                Reset Location & Privacy resets trust), quit QuickTime; idevice_id -l must list it
+"Could not pull the log archive" phone locked or not paired; ./run.sh threads afterwards (soon)
+0 requests in report            Proxyman wasn't capturing the phone (proxy/SSL settings) or session was cleared
+Camera permission prompt        first recording: allow your terminal in System Settings > Privacy & Security > Camera

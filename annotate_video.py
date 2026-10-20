@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -582,6 +583,7 @@ _W = {}
 
 
 def _init(session):
+    signal.signal(signal.SIGINT, signal.SIG_IGN)   # Ctrl+C is handled once, in the parent
     _W["D"] = load(session)
     _W["F"] = fonts()
     _W["ev"] = build_events(_W["D"])
@@ -868,4 +870,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nAnnotated video cancelled (re-run later with ./run.sh video).")
+        sys.exit(130)

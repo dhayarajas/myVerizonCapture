@@ -18,6 +18,13 @@ swiftc -O screen-ocr.swift -o screen-ocr        # also built automatically on fi
 The first recording may prompt for Camera permission for your terminal app
 (System Settings → Privacy & Security → Camera).
 
+## Quick start
+```sh
+./run.sh doctor     # check phone / Proxyman / tools
+./run.sh capture    # record; Ctrl+C when done -> report + annotated video
+./run.sh help       # every command; see commands.txt for the full cheat sheet
+```
+
 ## Capture a session
 ```sh
 ./capture.sh                       # use the app; Ctrl+C when done
