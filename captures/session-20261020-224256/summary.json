@@ -1,0 +1,647 @@
+{
+ "session": "2026-10-20T17:12:57Z",
+ "device": "Kavi iPhone",
+ "metrics": {
+  "recording": 202.5,
+  "spinner_total": 30.9,
+  "spinner_longest": 7.4,
+  "api_p50": 0.41,
+  "api_p95": 2.13,
+  "requests": 743,
+  "api_calls": 225,
+  "bytes": 48049173,
+  "dup_image_bytes": 10490,
+  "queued_max": 0.337,
+  "launch_to_first_content": 4.86,
+  "launch_to_first_api": 2.72,
+  "launch_to_did_finish_launching": 9.86,
+  "cold_start_total": 1.86,
+  "cold:Launch \u2192 Welcome back": 1.86,
+  "spinner:Your billis all C (loading) \u2192 Shop": 1.8,
+  "spinner:Web: browse/myoffers (loading) \u2192 Web: browse/myoffers": 3.8,
+  "spinner:Made for you (loading) \u2192 Home products": 1.1,
+  "spinner:Waiting for accountlandingservice/customerDetails": 0.9,
+  "spinner:Compare devices (loading) \u2192 \u2022 Added to your cart": 3.5,
+  "spinner:* Getanswers quickly (loading) \u2192 Pick your plan": 7.4,
+  "spinner:Web: configurator/unlocked-offers (loading) \u2192 Web: configurator/unlocked-offers": 3.7,
+  "spinner:Protect my devices (loading) \u2192 Your numbers": 2.5,
+  "spinner:Apple iPhone Duo (loading) \u2192 Here's your cart (loading)": 4.6,
+  "spinner:Notready to check ou C (loading) \u2192 Web: checkout/creditdownpayment": 1.6,
+  "render:Blank screen \u2192 Web: browse/myoffers (loading)": 2.1,
+  "render:Web: browse/myoffers \u2192 Shop": 3.8,
+  "render:Big deals. Top products \u2192 Home products": 2.5,
+  "render:127 results \u2192 Flex Upgrade": 8.9,
+  "render:Customize your device \u2192 Upgrade a line": 1.4,
+  "render:Pick your plan \u2192 Web: configurator/unlocked-offers": 2.6,
+  "render:Web: configurator/unlocked-offers (loading) \u2192 \uf8ffMusic": 5.2,
+  "render:\uf8ffMusic \u2192 You'll save $6.99/mo with us": 1.1,
+  "render:Your deal just got sweeter \u2192 Protect my devices (loading)": 6.7,
+  "render:Render after caas/black-ribbon-groups.model.isActive:true.json": 2.7,
+  "hitch_count": 27,
+  "hitch_ms": 3438,
+  "tap_feedback_max": 0.956
+ },
+ "endpoints": {
+  "POST www.verizon.com/digital/nsa/secure/gw/retail/rtlShopLanding": {
+   "dur": [
+    1.573
+   ],
+   "ttfb": [
+    1.863
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/nos/gw/retail/rtlWishListMVA": {
+   "dur": [
+    0.868
+   ],
+   "ttfb": [
+    0.905
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/mvaFeedback": {
+   "dur": [
+    0.876,
+    0.529
+   ],
+   "ttfb": [
+    0.956,
+    0.545
+   ]
+  },
+  "GET www.verizon.com/nextgendigital/sales/browse/auth/myoffers": {
+   "dur": [
+    1.549
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/sales/browse/auth/myoffers/": {
+   "dur": [
+    1.728
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/personalizationrecommendationsservice/pdm/myOffersNextGenNsa": {
+   "dur": [
+    2.016
+   ],
+   "ttfb": []
+  },
+  "POST sanalytics.verizon.com/ee/v1/interact": {
+   "dur": [
+    0.832
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7/MGstPDcC/YiYVLVQ/aDFoV": {
+   "dur": [
+    0.084,
+    0.084,
+    0.088,
+    0.064,
+    0.117,
+    0.089,
+    0.074,
+    0.069,
+    0.062,
+    0.097,
+    0.109,
+    0.268,
+    0.084,
+    0.307,
+    0.515,
+    0.091
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/personalizationrecommendationsservice/pdm/getLiveTiles": {
+   "dur": [
+    1.799
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/omnidlservice/readDL [desktop store]": {
+   "dur": [
+    0.803,
+    0.601,
+    1.043,
+    0.414,
+    0.455,
+    0.399,
+    0.449,
+    0.382,
+    0.395,
+    0.565,
+    0.477,
+    0.393
+   ],
+   "ttfb": [
+    0.412
+   ]
+  },
+  "POST sanalytics.verizon.com/ee/or2/v1/interact": {
+   "dur": [
+    0.311,
+    0.297,
+    0.294,
+    0.332,
+    0.326,
+    0.293,
+    0.326,
+    0.315,
+    0.295,
+    0.292,
+    0.311,
+    0.296,
+    0.277,
+    0.347,
+    0.292,
+    0.296,
+    0.339,
+    0.328,
+    0.289,
+    0.317,
+    0.317,
+    0.301,
+    0.288,
+    0.334,
+    0.28
+   ],
+   "ttfb": [
+    0.355,
+    0.336,
+    0.42,
+    0.312,
+    0.321
+   ]
+  },
+  "POST www.verizon.com/soe/digital/auth/peripheralsservice/fetchFeatureFlags": {
+   "dur": [
+    0.51,
+    0.467,
+    0.573,
+    0.507,
+    0.459,
+    0.422,
+    0.488,
+    0.595,
+    0.472,
+    0.447,
+    0.51,
+    0.441
+   ],
+   "ttfb": [
+    0.315
+   ]
+  },
+  "GET www.verizon.com/smartphones/": {
+   "dur": [
+    0.263,
+    0.41
+   ],
+   "ttfb": [
+    0.442,
+    0.054
+   ]
+  },
+  "GET www.verizon.com/us/json/smartphones": {
+   "dur": [
+    0.194
+   ],
+   "ttfb": [
+    0.056
+   ]
+  },
+  "POST www.verizon.com/soe/digital/prospect/peripheralsservice/jsNotifyAsDynamic": {
+   "dur": [
+    0.803,
+    0.386,
+    0.411,
+    0.409,
+    0.421,
+    0.434,
+    0.373,
+    0.377,
+    0.385,
+    0.396,
+    0.402,
+    0.359,
+    0.411,
+    0.432,
+    0.337,
+    0.365,
+    0.373,
+    0.364,
+    0.372,
+    0.372,
+    0.389,
+    0.355,
+    0.373,
+    0.408,
+    0.383,
+    0.472,
+    0.394,
+    0.392,
+    0.406,
+    0.344,
+    0.364,
+    0.346,
+    0.359,
+    0.388
+   ],
+   "ttfb": [
+    0.334,
+    0.317,
+    0.323
+   ]
+  },
+  "POST www.verizon.com/soe/digital/auth/casemanagementservice/cases/getCaseCartCount": {
+   "dur": [
+    0.56,
+    0.592,
+    0.553
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/browseservice/getSeoDetails": {
+   "dur": [
+    0.972,
+    0.737,
+    0.581
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/accountlandingservice/landing/v2/getRecommendationTiles": {
+   "dur": [
+    0.423,
+    0.404
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/peripheralsservice/jsNotifyAsDynamic": {
+   "dur": [
+    0.416,
+    0.41,
+    0.359,
+    0.363,
+    0.813,
+    0.356,
+    0.386,
+    0.39,
+    0.365,
+    0.406,
+    0.467,
+    0.553,
+    0.567,
+    1.163,
+    0.391,
+    0.391,
+    0.376,
+    0.437
+   ],
+   "ttfb": [
+    0.323,
+    0.333
+   ]
+  },
+  "POST www.verizon.com/soe/digital/auth/browseservice/gridWallRealTimeInsights": {
+   "dur": [
+    1.308,
+    0.569,
+    0.5
+   ],
+   "ttfb": [
+    0.314
+   ]
+  },
+  "POST www.verizon.com/soe/digital/auth/browseservice/getCradleData": {
+   "dur": [
+    0.683
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/prospect/personalizationrecommendationsservice/pdm/util/autoSuggestPoll": {
+   "dur": [
+    0.395,
+    0.358
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/secure/products-perks/": {
+   "dur": [
+    1.613
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/products/producthub/tagging": {
+   "dur": [
+    1.601
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/store/products-perks/category/home": {
+   "dur": [
+    0.085
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/secure/products-perks/category/home": {
+   "dur": [
+    1.074
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/connected-smartwatches/": {
+   "dur": [
+    0.51
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/us/json/connected-smartwatches": {
+   "dur": [
+    3.463
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/smartphones/apple-iphone-duo/": {
+   "dur": [
+    4.514
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/browseservice/getProductDetails": {
+   "dur": [
+    3.148
+   ],
+   "ttfb": []
+  },
+  "GET ss7.vzw.com/is/image/VerizonWireless/apple-iphone-duo-star-white_IMAGESETS": {
+   "dur": [
+    0.891,
+    0.801
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/accountlandingservice/customerDetails": {
+   "dur": [
+    1.035
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/casemanagementservice/cases/getCaseAndCartId": {
+   "dur": [
+    0.926
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/shippinghandlingservice/shipping/shippingOptionsWithSdd": {
+   "dur": [
+    0.872
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/tag_path/profile/visit/js/1_0": {
+   "dur": [
+    0.797,
+    0.131
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/browseservice/bundleTogether": {
+   "dur": [
+    2.667,
+    3.008
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/cartservice/cart/add-device": {
+   "dur": [
+    3.203
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/orderprocessservice/checkoutapi/v2/get-minicart-summary-configurator": {
+   "dur": [
+    0.538,
+    0.666,
+    0.497,
+    0.514,
+    0.49,
+    0.56,
+    0.576,
+    0.519,
+    1.375,
+    0.507
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/sales/configurator/auth/devices/smartphones": {
+   "dur": [
+    6.554
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/plansservice/getPlansSurcharge": {
+   "dur": [
+    1.408,
+    0.491,
+    0.517
+   ],
+   "ttfb": [
+    0.412
+   ]
+  },
+  "POST sanalytics.verizon.com/ee/or2/v1/interact [customized]": {
+   "dur": [
+    0.317,
+    0.316,
+    0.31,
+    0.352,
+    0.334,
+    0.307,
+    0.304,
+    0.304,
+    0.323,
+    0.318,
+    0.303,
+    0.408,
+    0.338,
+    0.301,
+    0.31,
+    0.332,
+    0.379,
+    0.344,
+    0.331,
+    0.329,
+    0.316,
+    0.312
+   ],
+   "ttfb": [
+    0.307,
+    0.318,
+    0.314,
+    0.314
+   ]
+  },
+  "GET www.verizon.com/nextgendigital/sales/configurator/auth/unlocked-offers": {
+   "dur": [
+    1.328,
+    2.337,
+    0.955,
+    0.482,
+    2.996,
+    2.135
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/cartservice/cart/add-plan [customized]": {
+   "dur": [
+    2.98
+   ],
+   "ttfb": []
+  },
+  "GET ss7.vzw.com/is/content/VerizonWireless/applemusic-091124": {
+   "dur": [
+    1.081
+   ],
+   "ttfb": []
+  },
+  "GET ss7.vzw.com/is/content/VerizonWireless/AppleMusic_video_d": {
+   "dur": [
+    0.03,
+    0.091,
+    0.062,
+    0.666
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/cartservice/cart/add-features": {
+   "dur": [
+    2.844,
+    1.741
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/accountlandingservice/landing/getProcessStep": {
+   "dur": [
+    0.74,
+    0.938
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/sales/configurator/auth/device-protection/2": {
+   "dur": [
+    1.672,
+    1.742
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/sales/configurator/auth/number-selection": {
+   "dur": [
+    1.112,
+    1.325
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/deviceconfigservice/device-config/getProtectionFeatures": {
+   "dur": [
+    0.909
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/orderprocessservice/checkoutapi/v2/get-checkout-details": {
+   "dur": [
+    1.634,
+    1.578
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/cartservice/cart/assign-mtn": {
+   "dur": [
+    1.736
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/sales/configurator/auth/cart": {
+   "dur": [
+    2.132
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/cartservice/cart/getNSAThrottleList": {
+   "dur": [
+    1.265
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/personalizationrecommendationsservice/pdm/swOfferRecommendation": {
+   "dur": [
+    1.749
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/sales/checkout/auth/creditdownpayment": {
+   "dur": [
+    1.985
+   ],
+   "ttfb": []
+  }
+ },
+ "condition": "default",
+ "build": {
+  "appVersion": "22.1.1",
+  "build": null,
+  "os": "26.6.1",
+  "device": "iPhone"
+ },
+ "budgets": [
+  {
+   "label": "Cold start (launch \u2192 first screen)",
+   "metric": "cold_start_total",
+   "max": 3.0,
+   "value": 1.86,
+   "pass": true
+  },
+  {
+   "label": "Launch \u2192 first API call",
+   "metric": "launch_to_first_api",
+   "max": 1.0,
+   "value": 2.72,
+   "pass": false
+  },
+  {
+   "label": "Sign-in spinner",
+   "metric": "spinner:Sign-in (Face ID)",
+   "max": 6.0,
+   "value": null,
+   "pass": null
+  },
+  {
+   "label": "Longest spinner",
+   "metric": "spinner_longest",
+   "max": 5.0,
+   "value": 7.4,
+   "pass": false
+  },
+  {
+   "label": "Total spinner time",
+   "metric": "spinner_total",
+   "max": 10.0,
+   "value": 30.9,
+   "pass": false
+  },
+  {
+   "label": "API p95",
+   "metric": "api_p95",
+   "max": 2.0,
+   "value": 2.13,
+   "pass": false
+  },
+  {
+   "label": "Max on-device queueing",
+   "metric": "queued_max",
+   "max": 0.3,
+   "value": 0.337,
+   "pass": false
+  }
+ ]
+}
