@@ -1,0 +1,797 @@
+{
+ "session": "2026-10-20T13:21:54Z",
+ "device": "Kavi iPhone",
+ "metrics": {
+  "recording": 297.2,
+  "spinner_total": 17.5,
+  "spinner_longest": 3.0,
+  "api_p50": 0.43,
+  "api_p95": 1.41,
+  "requests": 1057,
+  "api_calls": 343,
+  "bytes": 50913745,
+  "dup_image_bytes": 0,
+  "queued_max": 0.697,
+  "cold_start_total": 8.11,
+  "cold:Launch \u2192 Your billis all. C (loading)": 5.01,
+  "cold:Your billis all. C (loading) \u2192 Mobile (loading)": 2.0,
+  "cold:Mobile (loading) \u2192 Mobile": 1.1,
+  "spinner:Waiting for pf/mobileLandingMVA": 1.4,
+  "spinner:Mobile (loading) \u2192 Mobile": 0.9,
+  "spinner:Waiting for l2/webview": 1.2,
+  "spinner:* Getanswers quickly (loading) \u2192 Web: devices/blocks": 1.3,
+  "spinner:There is no charge to block (loading) \u2192 Web: devices/blocks": 1.3,
+  "spinner:* Getanswers quickly (loading) \u2192 ** Getanswers quickly": 1.4,
+  "spinner:* Getanswers quickly (loading) \u2192 Changing your mobile number": 3.0,
+  "spinner:Loading Page (loading) \u2192 Loading Page": 0.9,
+  "spinner:Trade in \u2192 This device is unlocked": 2.6,
+  "spinner:Loader \u2192 Protect your mobile number": 0.9,
+  "spinner:* Getanswers quickly (loading) \u2192 * Getanswers quickly": 1.7,
+  "spinner:Loader \u2192 Web: acct/securityDashboard": 0.9,
+  "render:Your billis all. C (loading) \u2192 TEST TESTER (loading)": 2.5,
+  "render:Blank screen \u2192 TEST TESTER": 1.9,
+  "render:TEST TESTER \u2192 Shop watches Shop tablets": 7.3,
+  "render:Web: devices/blocks \u2192 Shop tablets Shop watches": 5.8,
+  "render:Web: devices/blocks \u2192 Block calls & messages": 8.2,
+  "render:Voicemail password \u2192 Call forwarding": 8.3,
+  "render:** Getanswers quickly \u2192 Shop tablets Shop watches": 5.3,
+  "render:Call forwarding \u2192 Web: support/call-forwarding-faqs": 1.4,
+  "render:Device info \u2192 Shop watches Shop tablets": 3.1,
+  "render:Network Compatibility \u2192 Shop tablets Shop watches": 4.8,
+  "render:Changing your mobile number \u2192 Shop tablets Shop watches": 4.6,
+  "render:Blank screen \u2192 On device activation": 1.8,
+  "render:On device activation \u2192 Trade in": 7.9,
+  "render:Blank screen \u2192 Shop tablets Shop watches": 3.3,
+  "render:Important Consumer Information \u2192 Transfer your service": 1.0,
+  "render:Transfer your service \u2192 Web: devices/device": 11.0,
+  "render:Web: devices/device \u2192 Protect your mobile number": 1.0,
+  "render:Protect your mobile number \u2192 Shop tablets Shop watches": 5.4,
+  "render:Mobile Secure Get it now \u2192 Shop tablets Shop watches": 3.8,
+  "render:Shop tablets Shop watches \u2192 Tech Coach": 1.2,
+  "render:Web: acct/securityDashboard \u2192 Blank screen": 1.8,
+  "render:Blank screen \u2192 Transfer your service": 8.2,
+  "hitch_count": 36,
+  "hitch_ms": 4306,
+  "tap_feedback_max": 1.359
+ },
+ "endpoints": {
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/pf/mobileLandingMVA": {
+   "dur": [
+    1.058
+   ],
+   "ttfb": [
+    1.28
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/pf/upgradeTilesMVA": {
+   "dur": [
+    3.249
+   ],
+   "ttfb": [
+    3.375
+   ]
+  },
+  "GET ss7.vzw.com/is/image/VerizonWireless/iPhoneX-SpGry": {
+   "dur": [
+    0.79
+   ],
+   "ttfb": [
+    0.801
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/products/producthub/servicesPerksMVA": {
+   "dur": [
+    1.161
+   ],
+   "ttfb": [
+    1.171
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/pf/usageSummaryMVA": {
+   "dur": [
+    1.03
+   ],
+   "ttfb": [
+    1.061
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/plan/servicesPerksMVA": {
+   "dur": [
+    0.39
+   ],
+   "ttfb": [
+    0.446
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/l2/webview": {
+   "dur": [
+    1.598
+   ],
+   "ttfb": [
+    1.607
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/devices/device": {
+   "dur": [
+    1.501,
+    1.257,
+    0.803,
+    2.875,
+    0.892,
+    0.923,
+    0.871,
+    0.837,
+    0.879,
+    0.942,
+    0.914,
+    0.847,
+    0.841,
+    0.886,
+    0.753
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/public/60d313817b3e29acbb886a91b435cba0f60638b994d6": {
+   "dur": [
+    0.587
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7/MGstPDcC/Jj8fKRF/lZF0V": {
+   "dur": [
+    0.276,
+    0.133
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7DYmD9D/JGkkPDcC/FFUpOAV/mVy4": {
+   "dur": [
+    0.296,
+    0.114,
+    0.049
+   ],
+   "ttfb": [
+    0.332
+   ]
+  },
+  "POST www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7DYmD9D/JGkkPDcC/FFUpOAV/mVy4": {
+   "dur": [
+    0.7,
+    0.669,
+    0.346,
+    0.356,
+    0.373,
+    0.375,
+    0.379,
+    0.371,
+    0.348
+   ],
+   "ttfb": []
+  },
+  "POST sanalytics.verizon.com/ee/or2/v1/interact": {
+   "dur": [
+    0.33,
+    0.333,
+    0.299,
+    0.277,
+    0.28,
+    0.27,
+    0.276,
+    0.268,
+    0.294,
+    0.274,
+    0.264,
+    0.273,
+    0.338,
+    0.281,
+    0.264,
+    0.265,
+    0.28,
+    0.268,
+    0.277,
+    0.299,
+    0.262,
+    0.281,
+    0.281,
+    0.266,
+    0.276,
+    0.273,
+    0.267,
+    0.296,
+    0.283,
+    0.172,
+    0.267,
+    0.279,
+    0.269,
+    0.263,
+    0.298,
+    0.281,
+    0.272,
+    0.281,
+    0.275,
+    0.274,
+    0.291,
+    0.272,
+    0.266,
+    0.284,
+    0.274,
+    0.481,
+    0.268,
+    0.28,
+    0.281,
+    0.269,
+    0.305,
+    0.283,
+    0.268,
+    0.268,
+    0.278,
+    0.279,
+    0.263,
+    0.277,
+    0.273,
+    0.264,
+    0.281,
+    0.271,
+    0.269,
+    0.335,
+    0.27,
+    0.274,
+    0.289,
+    0.286,
+    0.268,
+    0.273,
+    0.275,
+    0.262,
+    0.277,
+    0.275,
+    0.271,
+    0.281,
+    0.273,
+    0.271
+   ],
+   "ttfb": [
+    0.337,
+    0.339,
+    0.361,
+    0.349,
+    0.346,
+    0.445,
+    0.328,
+    0.351,
+    0.332
+   ]
+  },
+  "GET www.verizon.com/public/60d313817b3e29acbb886a91b435cba0f60638b994d6/h/b90dea8b4dec42619841bf216443707a": {
+   "dur": [
+    0.442,
+    0.441
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/devices/notification/network_outage": {
+   "dur": [
+    1.272,
+    1.014,
+    1.04,
+    1.383,
+    1.117,
+    1.242,
+    1.096,
+    1.039,
+    1.026,
+    1.084,
+    1.192,
+    1.056,
+    1.192,
+    0.994,
+    1.056
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/devices/proactive/notification": {
+   "dur": [
+    1.419,
+    1.498,
+    1.223,
+    1.409,
+    1.294,
+    1.408,
+    1.46,
+    1.223,
+    1.176,
+    1.175,
+    1.344,
+    1.227,
+    1.341,
+    1.406,
+    1.414
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/devices/ngd/pendingAcctDetails": {
+   "dur": [
+    1.222,
+    0.792,
+    0.881,
+    0.983,
+    0.832,
+    0.793,
+    0.841,
+    0.722,
+    0.82,
+    0.667,
+    0.849,
+    0.802,
+    0.763,
+    0.79,
+    0.741
+   ],
+   "ttfb": [
+    0.412
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/devices/ngd/recommendation": {
+   "dur": [
+    2.692,
+    0.371,
+    0.34,
+    0.371,
+    0.409,
+    0.349,
+    0.367,
+    0.364,
+    0.398,
+    0.386,
+    0.413,
+    0.397,
+    0.352,
+    0.43,
+    0.409
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/devices/ngd/deviceDetail": {
+   "dur": [
+    1.45,
+    0.85,
+    0.748,
+    0.839,
+    0.838,
+    0.689,
+    0.898,
+    0.774,
+    0.809,
+    0.746,
+    0.919,
+    0.825,
+    0.818,
+    0.827,
+    1.048
+   ],
+   "ttfb": [
+    0.412
+   ]
+  },
+  "POST www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7/MGstPDcC/Jj8fKRF/lZF0V": {
+   "dur": [
+    0.047,
+    0.047,
+    0.04,
+    0.047,
+    0.042,
+    0.049,
+    0.04,
+    0.046,
+    0.05,
+    0.043,
+    0.04,
+    0.043,
+    0.048,
+    0.037,
+    0.037,
+    0.046,
+    0.038,
+    0.042,
+    0.052,
+    0.085,
+    0.041,
+    0.05,
+    0.048,
+    0.075,
+    0.067,
+    0.056,
+    0.071,
+    0.055,
+    0.06,
+    0.038,
+    0.05,
+    0.036,
+    0.044,
+    0.051,
+    0.044,
+    0.049,
+    0.064,
+    0.053,
+    0.044,
+    0.059,
+    0.053,
+    0.051,
+    0.059,
+    0.061,
+    0.054,
+    0.054,
+    0.064
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/peripheralsservice/fetchFeatureFlags": {
+   "dur": [
+    0.391,
+    0.668,
+    0.841,
+    0.41,
+    0.394,
+    0.419,
+    0.42,
+    0.418,
+    0.389,
+    0.431,
+    0.598,
+    0.395,
+    0.543,
+    0.428,
+    0.513,
+    0.4,
+    0.39,
+    0.417,
+    0.435,
+    0.427,
+    0.394,
+    0.451,
+    0.594,
+    0.434,
+    0.417,
+    0.467,
+    0.573,
+    0.42,
+    0.41,
+    0.503
+   ],
+   "ttfb": [
+    0.358,
+    0.325,
+    0.51
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/bill/valueCenter/landing": {
+   "dur": [
+    1.54,
+    0.92,
+    1.491,
+    0.855,
+    0.849,
+    0.797,
+    0.811,
+    1.001,
+    0.83,
+    1.104,
+    0.784,
+    1.008,
+    0.854,
+    0.821,
+    0.921
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/devices/soi/tagging": {
+   "dur": [
+    1.114,
+    1.358,
+    0.68,
+    0.662,
+    0.67,
+    0.819,
+    0.805,
+    1.055,
+    0.691,
+    0.717,
+    1.023,
+    0.708,
+    0.677,
+    0.86,
+    0.729,
+    0.76
+   ],
+   "ttfb": [
+    0.401,
+    0.509,
+    0.349
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/devices/blocks/": {
+   "dur": [
+    0.539,
+    0.398
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/devices/blocks/blockServiceV2": {
+   "dur": [
+    1.278
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/devices/blocks/callsMessages": {
+   "dur": [
+    1.315
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/acct/voicemail/": {
+   "dur": [
+    0.349
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/acct/profile/security/managevoicemailpassword": {
+   "dur": [
+    1.447
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/acct/profile/security": {
+   "dur": [
+    1.006,
+    0.956
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/acct/common/taggingParams": {
+   "dur": [
+    1.007,
+    0.879,
+    0.663
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/devices/cloud-backup": {
+   "dur": [
+    0.814
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/devices/sharenameid/": {
+   "dur": [
+    0.537
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/devices/sharenameid/landing": {
+   "dur": [
+    0.779
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/devices/sharenameid/faqs": {
+   "dur": [
+    1.324
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/devices/sharenameid/undefined": {
+   "dur": [
+    0.497
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/support/call-forwarding-faqs/": {
+   "dur": [
+    0.748
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/support/lb_kal.html": {
+   "dur": [
+    0.423
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/support/getCustomerInfo": {
+   "dur": [
+    0.795,
+    0.877
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/support/getAemLivetiles": {
+   "dur": [
+    1.504
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/support/retrieveBookMark": {
+   "dur": [
+    0.522
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/nos/gw/support/getAgenticStreamData": {
+   "dur": [
+    0.583
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/content/support/feedback-component-page.html": {
+   "dur": [
+    0.438
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/support/networkcompatibility_mva": {
+   "dur": [
+    0.521
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/support/networkCompatibilityData": {
+   "dur": [
+    0.695
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/support/networkCompatibilityNbxData": {
+   "dur": [
+    1.043
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/acct/changemdn/": {
+   "dur": [
+    0.426
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/acct/changemdn/device-details": {
+   "dur": [
+    1.09
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/sales/as/device-activation.html": {
+   "dur": [
+    1.502
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/aysservice/ays/byod/getSimBlock [POP]": {
+   "dur": [
+    1.103
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/devices/device/deviceLockStatus": {
+   "dur": [
+    0.944
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/devices/ngd/deviceLockStatus": {
+   "dur": [
+    0.734
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/support/transfer-service/overview/": {
+   "dur": [
+    0.517
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/support/getSupportLiveTiles": {
+   "dur": [
+    1.461
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/acct/profile/security/portsecurity/": {
+   "dur": [
+    0.723
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/products/producthub/pdp/sfo80072MS": {
+   "dur": [
+    0.564
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/products/producthub/pdp": {
+   "dur": [
+    1.162
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/products/producthub/tagging": {
+   "dur": [
+    0.791
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/acct/securityDashboard/": {
+   "dur": [
+    0.653
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/acct/securitydashboard/tncinterstitial/": {
+   "dur": [
+    0.92
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/devices/pinpuk_details": {
+   "dur": [
+    1.079
+   ],
+   "ttfb": []
+  }
+ },
+ "condition": "default",
+ "build": {
+  "appVersion": "22.1.1",
+  "build": null,
+  "os": "26.6.1",
+  "device": "iPhone"
+ },
+ "budgets": [
+  {
+   "label": "Cold start (launch \u2192 first screen)",
+   "metric": "cold_start_total",
+   "max": 3.0,
+   "value": 8.11,
+   "pass": false
+  },
+  {
+   "label": "Launch \u2192 first API call",
+   "metric": "launch_to_first_api",
+   "max": 1.0,
+   "value": null,
+   "pass": null
+  },
+  {
+   "label": "Sign-in spinner",
+   "metric": "spinner:Sign-in (Face ID)",
+   "max": 6.0,
+   "value": null,
+   "pass": null
+  },
+  {
+   "label": "Longest spinner",
+   "metric": "spinner_longest",
+   "max": 5.0,
+   "value": 3.0,
+   "pass": true
+  },
+  {
+   "label": "Total spinner time",
+   "metric": "spinner_total",
+   "max": 10.0,
+   "value": 17.5,
+   "pass": false
+  },
+  {
+   "label": "API p95",
+   "metric": "api_p95",
+   "max": 2.0,
+   "value": 1.41,
+   "pass": true
+  },
+  {
+   "label": "Max on-device queueing",
+   "metric": "queued_max",
+   "max": 0.3,
+   "value": 0.697,
+   "pass": false
+  }
+ ]
+}
