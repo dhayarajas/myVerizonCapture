@@ -1,0 +1,258 @@
+{
+ "session": "2026-10-20T16:37:00Z",
+ "device": "Kavi iPhone",
+ "metrics": {
+  "recording": 68.5,
+  "spinner_total": 19.7,
+  "spinner_longest": 15.2,
+  "api_p50": 0.34,
+  "api_p95": 1.77,
+  "requests": 200,
+  "api_calls": 63,
+  "bytes": 19164426,
+  "dup_image_bytes": 0,
+  "queued_max": 0.383,
+  "cold_start_total": 3.38,
+  "cold:Launch \u2192 Account links": 3.38,
+  "spinner:Biling and payment it (loading) \u2192 Contact & Billing": 15.2,
+  "spinner:* Getanswers quickly (loading) \u2192 Add an account manager": 1.7,
+  "spinner:Loader \u2192 Contact & Billing": 1.0,
+  "spinner:Waiting for your-privacy-choices/cust-opt-out": 1.8,
+  "render:Render after VerizonWireless/Protect-app-launcher-050125": 4.1,
+  "render:Render after v1/interact": 1.2,
+  "render:* Getanswers quickly \u2192 Biling and payment it (loading)": 2.3,
+  "render:Loader \u2192 Contact & Billing #2": 1.3,
+  "render:* Getanswers quickly (loading) \u2192 Add an account manager #2": 3.9,
+  "render:Add an account manager \u2192 Contact & Billing": 1.0,
+  "hitch_count": 8,
+  "hitch_ms": 1109,
+  "tap_feedback_max": 0.363
+ },
+ "endpoints": {
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/support-tab-landing": {
+   "dur": [
+    1.712
+   ],
+   "ttfb": [
+    1.721
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/servicecentral": {
+   "dur": [
+    2.363
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/public/60d313817b3e29acbb886a91b435cba0f60638b994d6": {
+   "dur": [
+    0.275
+   ],
+   "ttfb": []
+  },
+  "POST sanalytics.verizon.com/ee/or2/v1/interact": {
+   "dur": [
+    0.831,
+    0.295,
+    0.287,
+    0.337,
+    0.284,
+    0.293,
+    0.295,
+    0.288,
+    0.305,
+    0.314,
+    0.292,
+    0.332,
+    0.296,
+    0.302,
+    0.289,
+    0.33,
+    0.328,
+    0.316,
+    0.289,
+    0.281,
+    0.303,
+    0.675,
+    0.297
+   ],
+   "ttfb": [
+    0.325,
+    0.049,
+    0.31,
+    0.314
+   ]
+  },
+  "POST www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7/MGstPDcC/YiYVLVQ/aDFoV": {
+   "dur": [
+    0.046,
+    0.045,
+    0.041,
+    0.04,
+    0.062,
+    0.038,
+    0.042,
+    0.043,
+    0.043,
+    0.038
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/peripheralsservice/fetchFeatureFlags": {
+   "dur": [
+    0.433,
+    0.89,
+    1.172,
+    0.411,
+    0.384,
+    0.387,
+    0.392,
+    0.418
+   ],
+   "ttfb": [
+    0.326
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/servicecentral/view-all": {
+   "dur": [
+    1.303
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/acct/profile": {
+   "dur": [
+    1.104
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/acct/common/taggingParams": {
+   "dur": [
+    1.781,
+    1.255,
+    1.002,
+    0.869
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/acct/profile/my-profile": {
+   "dur": [
+    2.134,
+    1.153
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/acct/profile/security": {
+   "dur": [
+    0.799,
+    0.973
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/acct/profile/contact-billing": {
+   "dur": [
+    1.768,
+    0.833
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/acct/profile/account-management": {
+   "dur": [
+    1.296
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/acct/account-manager/retrieveMgrs": {
+   "dur": [
+    1.553
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/acct/account-manager/getCustomerByMtn": {
+   "dur": [
+    1.383
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/acct/profile/contactbilling": {
+   "dur": [
+    1.212
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/acct/profile/privacypreferences": {
+   "dur": [
+    1.151
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/acct/profile/privacyPreferences": {
+   "dur": [
+    1.49
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/acct/privacy/your-privacy-choices/cust-opt-out": {
+   "dur": [
+    0.785
+   ],
+   "ttfb": []
+  }
+ },
+ "condition": "default",
+ "build": {
+  "appVersion": "22.1.1",
+  "build": null,
+  "os": "26.6.1",
+  "device": "iPhone"
+ },
+ "budgets": [
+  {
+   "label": "Cold start (launch \u2192 first screen)",
+   "metric": "cold_start_total",
+   "max": 3.0,
+   "value": 3.38,
+   "pass": false
+  },
+  {
+   "label": "Launch \u2192 first API call",
+   "metric": "launch_to_first_api",
+   "max": 1.0,
+   "value": null,
+   "pass": null
+  },
+  {
+   "label": "Sign-in spinner",
+   "metric": "spinner:Sign-in (Face ID)",
+   "max": 6.0,
+   "value": null,
+   "pass": null
+  },
+  {
+   "label": "Longest spinner",
+   "metric": "spinner_longest",
+   "max": 5.0,
+   "value": 15.2,
+   "pass": false
+  },
+  {
+   "label": "Total spinner time",
+   "metric": "spinner_total",
+   "max": 10.0,
+   "value": 19.7,
+   "pass": false
+  },
+  {
+   "label": "API p95",
+   "metric": "api_p95",
+   "max": 2.0,
+   "value": 1.77,
+   "pass": true
+  },
+  {
+   "label": "Max on-device queueing",
+   "metric": "queued_max",
+   "max": 0.3,
+   "value": 0.383,
+   "pass": false
+  }
+ ]
+}
