@@ -1,0 +1,13 @@
+{
+  "device" : "Kavi iPhone",
+  "endEpochMs" : 1792496092452,
+  "frameIntervalMs" : 500,
+  "frames" : 9640,
+  "framesDir" : "frames",
+  "height" : 2622,
+  "startEpochMs" : 1792495910968,
+  "startISO" : "2026-10-20T11:31:50Z",
+  "stills" : 333,
+  "video" : "screen.mp4",
+  "width" : 1206
+}
