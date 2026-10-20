@@ -1,0 +1,516 @@
+{
+ "session": "2026-10-20T11:45:48Z",
+ "device": "Kavi iPhone",
+ "metrics": {
+  "recording": 235.9,
+  "spinner_total": 15.5,
+  "spinner_longest": 2.3,
+  "api_p50": 0.38,
+  "api_p95": 1.59,
+  "requests": 820,
+  "api_calls": 134,
+  "bytes": 29602120,
+  "dup_image_bytes": 0,
+  "queued_max": 1.094,
+  "launch_to_first_content": 4.75,
+  "launch_to_first_api": 1.88,
+  "launch_to_did_finish_launching": 154.82,
+  "cold_start_total": 1.85,
+  "cold:Launch \u2192 GRUBHUB": 1.85,
+  "spinner:Waiting for vzup/shineLandingPage": 2.1,
+  "spinner:VIP Packages (loading) \u2192 Verifying Your Eligibility": 2.2,
+  "spinner:Waiting for vzup/shineHistory": 1.1,
+  "spinner:Waiting for l2/webview": 1.2,
+  "spinner:* Getanswers quickly (loading) \u2192 Verizon Family Get it now": 1.1,
+  "spinner:Waiting for producthub/ineligiblePerk": 1.5,
+  "spinner:Web: secure/products-perks (loading) \u2192 Mobile productivity": 2.1,
+  "spinner:Web: category/banking-cards (loading) \u2192 Banking & cards": 1.9,
+  "spinner:Waiting for OQUvACM/rYy4V": 2.3,
+  "render:GRUBHUB (loading) \u2192 Grubhub+ and $10 off on Grubhub": 7.3,
+  "render:Verizon Shine history (loading) \u2192 Verizon Shine history": 1.7,
+  "render:FAQS \u2192 Verizon Shine history": 4.3,
+  "render:Plan or device change required \u2192 Web: secure/products-perks (loading)": 1.6,
+  "render:Web: secure/products-perks (loading) \u2192 Mobile productivity #2": 1.6,
+  "render:Mobile productivity \u2192 Internati": 6.3,
+  "render:Internati \u2192 Loader": 7.3,
+  "hitch_count": 35,
+  "hitch_ms": 4279,
+  "tap_feedback_max": 2.385
+ },
+ "endpoints": {
+  "POST www.verizon.com/digital/nsa/secure/gw/vzup/shineLandingPage": {
+   "dur": [
+    2.295,
+    0.662
+   ],
+   "ttfb": [
+    2.408,
+    0.698
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/vzup/shinePartnerPromoLanding": {
+   "dur": [
+    0.748,
+    0.41
+   ],
+   "ttfb": [
+    0.769,
+    0.497
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/vzup/shineLocalPassLanding": {
+   "dur": [
+    0.975
+   ],
+   "ttfb": [
+    1.017
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/vzup/getSuperTicketDetails": {
+   "dur": [
+    0.508
+   ],
+   "ttfb": [
+    0.575
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/vzup/eventSummary": {
+   "dur": [
+    0.531
+   ],
+   "ttfb": [
+    0.541
+   ]
+  },
+  "GET mobile-exp.vzw.com/ticketmaster/a/55f/bd6b3934-088e-4d6b-adf5-49aa55be755f_SOURCE": {
+   "dur": [
+    0.649
+   ],
+   "ttfb": [
+    0.661
+   ]
+  },
+  "GET mobile-exp.vzw.com/ticketmaster/a/7a6/8e2f2d7e-9b99-4768-a2f2-f8ef0c6607a6_SOURCE": {
+   "dur": [
+    0.796
+   ],
+   "ttfb": [
+    0.808
+   ]
+  },
+  "GET mobile-exp.vzw.com/ticketmaster/a/103/f7535873-63d9-4979-b0ba-c96bbe7c7103_SOURCE": {
+   "dur": [
+    0.597,
+    0.215
+   ],
+   "ttfb": [
+    0.679,
+    0.238
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/vzup/presalesDetails": {
+   "dur": [
+    0.78
+   ],
+   "ttfb": [
+    0.887
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/vzup/shineHistory": {
+   "dur": [
+    1.321
+   ],
+   "ttfb": [
+    1.43
+   ]
+  },
+  "GET www.verizon.com/support/shine-faqs/": {
+   "dur": [
+    1.058
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7/MGstPDcC/OQUvACM/rYy4V": {
+   "dur": [
+    0.538,
+    0.293
+   ],
+   "ttfb": [
+    0.328
+   ]
+  },
+  "POST sanalytics.verizon.com/ee/v1/identity/acquire": {
+   "dur": [
+    0.809
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/support/lb_kal.html": {
+   "dur": [
+    0.738
+   ],
+   "ttfb": []
+  },
+  "POST sanalytics.verizon.com/ee/or2/v1/interact": {
+   "dur": [
+    0.269,
+    0.295,
+    0.279,
+    0.811,
+    0.28,
+    0.289,
+    0.819,
+    0.286,
+    0.284,
+    0.276,
+    0.27,
+    0.294,
+    0.289,
+    0.48,
+    0.294,
+    0.277,
+    0.266,
+    0.304,
+    0.297,
+    0.265,
+    0.295,
+    0.282,
+    0.281,
+    0.31,
+    0.333,
+    0.278,
+    0.283,
+    0.274,
+    0.28,
+    0.276,
+    0.258,
+    0.269
+   ],
+   "ttfb": [
+    0.317,
+    0.518,
+    0.337
+   ]
+  },
+  "GET www.verizon.com/one-digital/gnav/header/wirelessprospect.external.html": {
+   "dur": [
+    0.033
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/one-digital/gnav/footer/wirelessprospect.external.html": {
+   "dur": [
+    0.031
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/nos/gw/support/getAgenticStreamData": {
+   "dur": [
+    0.753,
+    0.786
+   ],
+   "ttfb": [
+    1.049
+   ]
+  },
+  "GET www.verizon.com/content/support/feedback-component-page.html": {
+   "dur": [
+    0.603
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7/MGstPDcC/OQUvACM/rYy4V": {
+   "dur": [
+    0.044,
+    0.036,
+    0.035,
+    0.316,
+    0.316,
+    0.035,
+    0.058,
+    0.035,
+    0.033,
+    0.033,
+    0.032,
+    0.113,
+    0.034,
+    0.042,
+    0.033,
+    0.049,
+    0.039,
+    0.034
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/prospect/peripheralsservice/retrieveFeatureFlags": {
+   "dur": [
+    1.141,
+    0.749,
+    0.608,
+    0.305,
+    0.619,
+    0.593
+   ],
+   "ttfb": []
+  },
+  "GET chatbot-exp.verizon.com/chatbot/nsa/nos/h8sv-vzwcb-onebot-proxy/eksprod/public/FeatureFlagContainer.html": {
+   "dur": [
+    0.56
+   ],
+   "ttfb": []
+  },
+  "POST chatbot-exp.verizon.com/chatbot/nsa/nos/h8sv-vzwcb-onebot-proxy/eksprod/cbcs/getFeatureFlagDetails": {
+   "dur": [
+    0.617,
+    0.49
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/peripheralsservice/fetchFeatureFlags": {
+   "dur": [
+    0.418,
+    0.583,
+    0.394,
+    0.675,
+    0.376,
+    0.367,
+    0.362,
+    0.376,
+    0.389,
+    0.054,
+    0.378
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/prospect/conversationalcommerceservice/nse/stream/getVzGptData": {
+   "dur": [
+    0.86,
+    0.702
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/prospect/peripheralsservice/jsNotifyAsDynamic": {
+   "dur": [
+    0.453
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/sales/assistant/vz-gpt/": {
+   "dur": [
+    1.588
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7DYmD9D/JGkkPDcC/FFUpOAV/mVy4": {
+   "dur": [
+    0.396
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/D_P9/yExr/XZ/rQ2C/vyOA/kf3DmGXYu7DYmD9D/JGkkPDcC/FFUpOAV/mVy4": {
+   "dur": [
+    0.165
+   ],
+   "ttfb": []
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/l2/webview": {
+   "dur": [
+    1.447
+   ],
+   "ttfb": [
+    1.496
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/bill/valuecenter": {
+   "dur": [
+    2.024,
+    1.904,
+    2.045
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/public/60d313817b3e29acbb886a91b435cba0f60638b994d6": {
+   "dur": [
+    0.809
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/public/60d313817b3e29acbb886a91b435cba0f60638b994d6/h/b90dea8b4dec42619841bf216443707a": {
+   "dur": [
+    0.281
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/soi/tagging": {
+   "dur": [
+    0.759,
+    0.334,
+    0.33
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/valueCenter/savings_boost_cards": {
+   "dur": [
+    1.948,
+    2.108,
+    2.062
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/bill/valueCenter/savings_boost_feedback": {
+   "dur": [
+    0.756,
+    0.433,
+    0.449,
+    0.446,
+    0.416
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/products/producthub/pdp/sfo999999": {
+   "dur": [
+    0.699,
+    0.339
+   ],
+   "ttfb": [
+    0.35
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/products/producthub/pdp": {
+   "dur": [
+    0.951
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/products/producthub/tagging": {
+   "dur": [
+    0.483,
+    0.362,
+    0.344
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/tag_path/profile/visit/js/1_0": {
+   "dur": [
+    0.758
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/products/producthub/newpdp/appleone_perk": {
+   "dur": [
+    0.621,
+    0.566
+   ],
+   "ttfb": [
+    0.331
+   ]
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/products/producthub/newpdp": {
+   "dur": [
+    0.939
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/gw/products/producthub/ineligiblePerk": {
+   "dur": [
+    0.495,
+    0.196
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/secure/products-perks": {
+   "dur": [
+    1.54
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/store/products-perks/category/mobile-productivity": {
+   "dur": [
+    0.039
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/secure/products-perks/category/mobile-productivity": {
+   "dur": [
+    1.341
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/ngd/store/products-perks/category/banking-cards": {
+   "dur": [
+    0.041
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/secure/products-perks/category/banking-cards": {
+   "dur": [
+    1.59
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/digital/nsa/secure/ui/products/producthub/ineligiblePerk/appleone_perk": {
+   "dur": [
+    0.608
+   ],
+   "ttfb": []
+  }
+ },
+ "condition": "default",
+ "build": {
+  "appVersion": "22.1.1",
+  "build": "24941.7",
+  "os": "26.6.1",
+  "device": "iPhone18,1"
+ },
+ "budgets": [
+  {
+   "label": "Cold start (launch \u2192 first screen)",
+   "metric": "cold_start_total",
+   "max": 3.0,
+   "value": 1.85,
+   "pass": true
+  },
+  {
+   "label": "Launch \u2192 first API call",
+   "metric": "launch_to_first_api",
+   "max": 1.0,
+   "value": 1.88,
+   "pass": false
+  },
+  {
+   "label": "Sign-in spinner",
+   "metric": "spinner:Sign-in (Face ID)",
+   "max": 6.0,
+   "value": null,
+   "pass": null
+  },
+  {
+   "label": "Longest spinner",
+   "metric": "spinner_longest",
+   "max": 5.0,
+   "value": 2.3,
+   "pass": true
+  },
+  {
+   "label": "Total spinner time",
+   "metric": "spinner_total",
+   "max": 10.0,
+   "value": 15.5,
+   "pass": false
+  },
+  {
+   "label": "API p95",
+   "metric": "api_p95",
+   "max": 2.0,
+   "value": 1.59,
+   "pass": true
+  },
+  {
+   "label": "Max on-device queueing",
+   "metric": "queued_max",
+   "max": 0.3,
+   "value": 1.094,
+   "pass": false
+  }
+ ]
+}
