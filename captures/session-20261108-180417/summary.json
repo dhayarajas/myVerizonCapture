@@ -1,0 +1,574 @@
+{
+ "session": "2026-11-08T12:34:18Z",
+ "device": "Kavi iPhone",
+ "metrics": {
+  "recording": 126.5,
+  "spinner_total": 22.1,
+  "spinner_longest": 9.9,
+  "api_p50": 0.42,
+  "api_p95": 1.76,
+  "requests": 382,
+  "api_calls": 152,
+  "bytes": 15118824,
+  "dup_image_bytes": 0,
+  "queued_max": 0.47,
+  "cold_start_total": -0.0,
+  "cold:Launch \u2192 Choose your profile": 0.0,
+  "spinner:Waiting for launchapp/authentication": 0.9,
+  "spinner:Sign-in (Face ID)": 9.9,
+  "spinner:Your billis alm Wady (loading) \u2192 Shop": 1.5,
+  "spinner:Web: browse/myoffers (loading) \u2192 Web: browse/myoffers": 3.2,
+  "spinner:Flex Upgrade (loading) \u2192 \u2022 Added to your cart": 3.4,
+  "spinner:The best offers from us, for (loading) \u2192 Web: browse/myoffers": 3.2,
+  "render:Do you want to activate this device? \u2192 Loader": 4.8,
+  "render:132 results \u2192 Apple Motorola": 2.7,
+  "render:Select what you want to do \u2192 Upgrade a line": 2.0,
+  "render:Upgrade a line \u2192 Flex Upgrade (loading)": 5.0,
+  "render:\u2022 Added to your cart \u2192 Filter & sort Samsung": 1.0,
+  "hitch_count": 25,
+  "hitch_ms": 2839,
+  "tap_feedback_max": 0.677
+ },
+ "endpoints": {
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/authentication": {
+   "dur": [
+    1.236
+   ],
+   "ttfb": [
+    1.244
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/retrieveAdobeTagging": {
+   "dur": [
+    0.884
+   ],
+   "ttfb": [
+    1.021
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/ngd/accountDetailsMVA": {
+   "dur": [
+    1.776
+   ],
+   "ttfb": [
+    1.914
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/meLanding [meLanding]": {
+   "dur": [
+    0.319
+   ],
+   "ttfb": [
+    0.432
+   ]
+  },
+  "POST fdo.myvzw.com/nnlgateway/nnl/v/auth [INIT_AUTH]": {
+   "dur": [
+    1.096
+   ],
+   "ttfb": [
+    1.215
+   ]
+  },
+  "POST fdo.myvzw.com/nnlgateway/nnl/v/auth [FINISH_AUTH]": {
+   "dur": [
+    1.077
+   ],
+   "ttfb": [
+    1.087
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/getAuthorizationCode": {
+   "dur": [
+    1.637
+   ],
+   "ttfb": [
+    1.645
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/notificationMVA": {
+   "dur": [
+    1.246
+   ],
+   "ttfb": [
+    1.258
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/payment/vvc/native/vzDollarSnapshot": {
+   "dur": [
+    1.176
+   ],
+   "ttfb": [
+    1.216
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/psecure/gw/launchapp/verizonProtect": {
+   "dur": [
+    0.858
+   ],
+   "ttfb": [
+    0.912
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/priorityCardsMVA": {
+   "dur": [
+    1.456
+   ],
+   "ttfb": [
+    1.469
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/psecure/gw/launchapp/savedCart": {
+   "dur": [
+    1.656
+   ],
+   "ttfb": [
+    1.668
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/billSummaryMVA": {
+   "dur": [
+    1.088
+   ],
+   "ttfb": [
+    1.121
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/plan/servicesPerksMVA": {
+   "dur": [
+    1.206
+   ],
+   "ttfb": [
+    1.277
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/plan/savingsCenterMVA": {
+   "dur": [
+    0.949
+   ],
+   "ttfb": [
+    1.098
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/shortcuts/getCustomerPreferencesMVA": {
+   "dur": [
+    0.819
+   ],
+   "ttfb": [
+    0.828
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/bottomCardsMVA": {
+   "dur": [
+    1.11
+   ],
+   "ttfb": [
+    1.185
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/nos/gw/retail/rtlMeStoreJourney": {
+   "dur": [
+    0.902
+   ],
+   "ttfb": [
+    0.957
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/retail/rtlShopLanding": {
+   "dur": [
+    1.479
+   ],
+   "ttfb": [
+    1.589
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/nos/gw/retail/rtlWishListMVA": {
+   "dur": [
+    0.835
+   ],
+   "ttfb": [
+    0.939
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/mvaFeedback": {
+   "dur": [
+    0.45,
+    0.415,
+    0.425
+   ],
+   "ttfb": [
+    0.47,
+    0.533,
+    0.436
+   ]
+  },
+  "GET www.verizon.com/nextgendigital/sales/browse/auth/myoffers": {
+   "dur": [
+    1.765,
+    0.755
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/nextgendigital/sales/browse/auth/myoffers/": {
+   "dur": [
+    1.121,
+    0.44
+   ],
+   "ttfb": [
+    0.337
+   ]
+  },
+  "GET www.verizon.com/ILTtscaxd/tsX/iGM/7dOZKCpIu4Ig/6Q3GtXVa7O5mSp7L/BS8eYThxBg/bQJYLll/TPxg": {
+   "dur": [
+    0.414,
+    0.05
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/ILTtscaxd/tsX/iGM/7dOZKCpIu4Ig/6Q3GtXVa7O5mSp7L/BS8eYThxBg/bQJYLll/TPxg": {
+   "dur": [
+    0.383,
+    0.301,
+    0.352,
+    0.422,
+    0.876,
+    0.382,
+    0.381,
+    0.364,
+    0.441,
+    0.302,
+    0.388,
+    0.324,
+    0.34,
+    0.361,
+    0.4
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/personalizationrecommendationsservice/pdm/myOffersNextGenNsa": {
+   "dur": [
+    1.974,
+    1.758
+   ],
+   "ttfb": []
+  },
+  "POST sanalytics.verizon.com/ee/or2/v1/interact": {
+   "dur": [
+    0.83,
+    0.308,
+    0.275,
+    0.283,
+    0.287,
+    0.306,
+    0.285,
+    0.284,
+    0.29,
+    0.281,
+    0.276,
+    0.295,
+    0.292,
+    0.269,
+    0.294,
+    0.289
+   ],
+   "ttfb": [
+    0.345
+   ]
+  },
+  "POST www.verizon.com/ILTtscaxd/tsX/iGM/7dOZKCpIu4Ig/6Q3GtXVa7O/fRcpYThxBg/FxZralU/zMgwd": {
+   "dur": [
+    0.033,
+    0.032,
+    0.031,
+    0.032,
+    0.033,
+    0.031,
+    0.032,
+    0.359,
+    0.036,
+    0.033,
+    0.036
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/personalizationrecommendationsservice/pdm/getLiveTiles": {
+   "dur": [
+    1.187,
+    1.166
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/omnidlservice/readDL [desktop store]": {
+   "dur": [
+    0.345,
+    0.345
+   ],
+   "ttfb": [
+    0.333
+   ]
+  },
+  "POST www.verizon.com/soe/digital/auth/peripheralsservice/fetchFeatureFlags": {
+   "dur": [
+    0.898,
+    0.889,
+    0.397,
+    0.385,
+    0.421,
+    0.44
+   ],
+   "ttfb": []
+  },
+  "OPTIONS chatbot-exp.verizon.com/chatbot/nsa/nos/h8sv-vzwcb-onebot-proxy/eksprod/cbcs/saveWebDataV2": {
+   "dur": [
+    0.535,
+    0.33,
+    0.362,
+    0.616,
+    0.312
+   ],
+   "ttfb": [
+    0.561,
+    0.352
+   ]
+  },
+  "POST chatbot-exp.verizon.com/chatbot/nsa/nos/h8sv-vzwcb-onebot-proxy/eksprod/cbcs/saveWebDataV2": {
+   "dur": [
+    0.436,
+    0.425,
+    0.349,
+    0.418,
+    0.349
+   ],
+   "ttfb": [
+    0.346,
+    0.058
+   ]
+  },
+  "GET www.verizon.com/smartphones/": {
+   "dur": [
+    4.253
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/us/json/smartphones": {
+   "dur": [
+    7.26
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/browseservice/gridWallRealTimeInsights": {
+   "dur": [
+    0.638,
+    0.393
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/peripheralsservice/jsNotifyAsDynamic": {
+   "dur": [
+    0.626,
+    0.836,
+    0.778,
+    0.775,
+    0.822,
+    0.791,
+    0.778,
+    0.994,
+    0.327,
+    0.442,
+    0.578,
+    0.329,
+    0.385,
+    0.944,
+    0.327,
+    0.317,
+    0.368,
+    0.319,
+    0.32,
+    0.408,
+    0.611,
+    0.817,
+    0.322,
+    0.623,
+    0.355,
+    0.335,
+    0.393,
+    0.515,
+    0.378,
+    0.329,
+    0.356
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/casemanagementservice/cases/getCaseCartCount": {
+   "dur": [
+    1.662
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/browseservice/getSeoDetails": {
+   "dur": [
+    0.551,
+    0.496
+   ],
+   "ttfb": [
+    0.332
+   ]
+  },
+  "POST www.verizon.com/soe/digital/auth/accountlandingservice/landing/v2/getRecommendationTiles": {
+   "dur": [
+    0.39,
+    0.407
+   ],
+   "ttfb": [
+    0.331
+   ]
+  },
+  "POST www.verizon.com/soe/digital/prospect/personalizationrecommendationsservice/pdm/util/autoSuggestPoll": {
+   "dur": [
+    0.495,
+    0.738,
+    0.341
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/smartphones/samsung-galaxy-s26-ultra/": {
+   "dur": [
+    3.89
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/browseservice/getProductDetails": {
+   "dur": [
+    2.376
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/accountlandingservice/customerDetails": {
+   "dur": [
+    0.906
+   ],
+   "ttfb": []
+  },
+  "GET ss7.vzw.com/is/image/VerizonWireless/samsung-galaxy-s26-ult-sky-blue-sms948ulbv-sms948ulbev_IMAGESETS": {
+   "dur": [
+    0.79
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/casemanagementservice/cases/getCaseAndCartId": {
+   "dur": [
+    0.55
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/tag_path/profile/visit/js/1_0": {
+   "dur": [
+    1.302
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/prospect/peripheralsservice/jsNotifyAsDynamic": {
+   "dur": [
+    0.543,
+    0.541,
+    0.613,
+    0.422
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/browseservice/bundleTogether": {
+   "dur": [
+    0.992
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/cartservice/cart/add-device": {
+   "dur": [
+    3.02
+   ],
+   "ttfb": []
+  },
+  "POST www.verizon.com/soe/digital/auth/orderprocessservice/checkoutapi/v2/get-minicart-summary-configurator": {
+   "dur": [
+    0.574
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/smartphones/samsung": {
+   "dur": [
+    0.853
+   ],
+   "ttfb": []
+  },
+  "GET www.verizon.com/smartphones/samsung/": {
+   "dur": [
+    3.762
+   ],
+   "ttfb": []
+  },
+  "GET ss7.vzw.com/is/image/VerizonWireless/0726_samsung_gw_ad_tile_7_20_m": {
+   "dur": [
+    0.794
+   ],
+   "ttfb": []
+  }
+ },
+ "condition": "default",
+ "build": {
+  "appVersion": "22.1.1",
+  "build": "24941.7",
+  "os": "26.6.1",
+  "device": "iPhone18,1"
+ },
+ "budgets": [
+  {
+   "label": "Cold start (launch \u2192 first screen)",
+   "metric": "cold_start_total",
+   "max": 3.0,
+   "value": -0.0,
+   "pass": true
+  },
+  {
+   "label": "Launch \u2192 first API call",
+   "metric": "launch_to_first_api",
+   "max": 1.0,
+   "value": null,
+   "pass": null
+  },
+  {
+   "label": "Sign-in spinner",
+   "metric": "spinner:Sign-in (Face ID)",
+   "max": 6.0,
+   "value": 9.9,
+   "pass": false
+  },
+  {
+   "label": "Longest spinner",
+   "metric": "spinner_longest",
+   "max": 5.0,
+   "value": 9.9,
+   "pass": false
+  },
+  {
+   "label": "Total spinner time",
+   "metric": "spinner_total",
+   "max": 10.0,
+   "value": 22.1,
+   "pass": false
+  },
+  {
+   "label": "API p95",
+   "metric": "api_p95",
+   "max": 2.0,
+   "value": 1.76,
+   "pass": true
+  },
+  {
+   "label": "Max on-device queueing",
+   "metric": "queued_max",
+   "max": 0.3,
+   "value": 0.47,
+   "pass": false
+  }
+ ]
+}
