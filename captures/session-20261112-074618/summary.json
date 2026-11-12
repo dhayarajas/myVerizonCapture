@@ -1,0 +1,79 @@
+{
+ "session": "2026-11-12T02:16:19Z",
+ "device": "Kavi iPhone",
+ "metrics": {
+  "recording": 19.9,
+  "spinner_total": 6.5,
+  "spinner_longest": 5.3,
+  "api_p50": 0,
+  "api_p95": 0,
+  "requests": 0,
+  "api_calls": 0,
+  "bytes": 0,
+  "dup_image_bytes": 0,
+  "queued_max": null,
+  "launch_to_first_content": 8.4,
+  "launch_to_did_finish_launching": 11.61,
+  "cold_start_total": 2.0,
+  "cold:Launch \u2192 Headphones Other Device": 2.0,
+  "spinner:Loading": 1.2,
+  "spinner:Sign-in (Face ID)": 5.3,
+  "hitch_count": 0,
+  "hitch_ms": 0,
+  "tap_feedback_max": 0.579
+ },
+ "endpoints": {},
+ "condition": "default",
+ "build": {},
+ "budgets": [
+  {
+   "label": "Cold start (launch \u2192 first screen)",
+   "metric": "cold_start_total",
+   "max": 3.0,
+   "value": 2.0,
+   "pass": true
+  },
+  {
+   "label": "Launch \u2192 first API call",
+   "metric": "launch_to_first_api",
+   "max": 1.0,
+   "value": null,
+   "pass": null
+  },
+  {
+   "label": "Sign-in spinner",
+   "metric": "spinner:Sign-in (Face ID)",
+   "max": 6.0,
+   "value": 5.3,
+   "pass": true
+  },
+  {
+   "label": "Longest spinner",
+   "metric": "spinner_longest",
+   "max": 5.0,
+   "value": 5.3,
+   "pass": false
+  },
+  {
+   "label": "Total spinner time",
+   "metric": "spinner_total",
+   "max": 10.0,
+   "value": 6.5,
+   "pass": true
+  },
+  {
+   "label": "API p95",
+   "metric": "api_p95",
+   "max": 2.0,
+   "value": 0,
+   "pass": true
+  },
+  {
+   "label": "Max on-device queueing",
+   "metric": "queued_max",
+   "max": 0.3,
+   "value": null,
+   "pass": null
+  }
+ ]
+}

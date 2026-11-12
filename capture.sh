@@ -49,7 +49,11 @@ printf '{"network": "%s", "proxyThrottling": %s}\n' "${NETWORK:-default}" "$([[ 
 ./pull_threads.sh "$SESSION" || echo "(thread data unavailable — continuing without it)"
 
 echo "Exporting Proxyman traffic..."
-"$PROXYMAN_CLI" export-log -m all -f har -o "$PWD/$SESSION/traffic.har" >/dev/null || exit 1
+if ! "$PROXYMAN_CLI" export-log -m all -f har -o "$PWD/$SESSION/traffic.har" 2>&1 | grep -E '❌|rror'; then :; fi
+if [[ ! -s "$SESSION/traffic.har" ]]; then
+  echo "⚠️  No Proxyman traffic exported — is the iPhone's Wi-Fi proxy set to this Mac and Proxyman recording?"
+  echo "   Building the report without network data. Once fixed, rebuild with: ./report.sh $SESSION <file.har>"
+fi
 
 NO_OPEN=1 ./report.sh "$SESSION" -- ${APP_PROC:+--app-process "$APP_PROC"} || exit 1
 [[ "${ANNOTATE:-1}" == "0" ]] || NO_OPEN=1 ./annotate.sh "$SESSION" || echo "(annotated video export failed)"

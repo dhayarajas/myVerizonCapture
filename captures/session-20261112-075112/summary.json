@@ -1,0 +1,233 @@
+{
+ "session": "2026-11-12T02:21:14Z",
+ "device": "Kavi iPhone",
+ "metrics": {
+  "recording": 23.2,
+  "spinner_total": 5.9,
+  "spinner_longest": 3.5,
+  "api_p50": 0.92,
+  "api_p95": 1.26,
+  "requests": 97,
+  "api_calls": 19,
+  "bytes": 458335,
+  "dup_image_bytes": 0,
+  "queued_max": 2.486,
+  "launch_to_first_content": 4.3,
+  "launch_to_first_api": 2.87,
+  "launch_to_did_finish_launching": 0.41,
+  "cold_start_total": 4.4,
+  "cold:Launch \u2192 Loader": 0.9,
+  "cold:Loader \u2192 Choose your profile": 3.5,
+  "spinner:Loader \u2192 Choose your profile": 3.5,
+  "spinner:Sign-in (Face ID)": 2.4,
+  "render:Loader \u2192 Welcome back": 4.5,
+  "hitch_count": 0,
+  "hitch_ms": 0,
+  "tap_feedback_max": 0.653
+ },
+ "endpoints": {
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/authentication": {
+   "dur": [
+    0.923,
+    1.045
+   ],
+   "ttfb": [
+    1.157
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/retrieveAdobeTagging": {
+   "dur": [
+    0.304
+   ],
+   "ttfb": [
+    0.309
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/ngd/accountDetailsMVA": {
+   "dur": [
+    1.609
+   ],
+   "ttfb": [
+    1.624
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/meLanding [meLanding]": {
+   "dur": [
+    0.73
+   ],
+   "ttfb": [
+    0.739
+   ]
+  },
+  "POST fdo.myvzw.com/nnlgateway/nnl/v/auth [INIT_AUTH]": {
+   "dur": [
+    1.058
+   ],
+   "ttfb": [
+    1.067
+   ]
+  },
+  "POST fdo.myvzw.com/nnlgateway/nnl/v/auth [FINISH_AUTH]": {
+   "dur": [
+    1.048
+   ],
+   "ttfb": [
+    1.163
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/nos/gw/launchapp/getAuthorizationCode": {
+   "dur": [
+    0.936
+   ],
+   "ttfb": [
+    0.944
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/psecure/gw/launchapp/verizonProtect": {
+   "dur": [
+    0.336
+   ],
+   "ttfb": [
+    0.34
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/payment/vvc/native/vzDollarSnapshot": {
+   "dur": [
+    0.759
+   ],
+   "ttfb": [
+    0.786
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/priorityCardsMVA": {
+   "dur": [
+    1.183
+   ],
+   "ttfb": [
+    1.189
+   ]
+  },
+  "POST mobile-exp.vzw.com/mobile/nsa/psecure/gw/launchapp/savedCart": {
+   "dur": [
+    1.023
+   ],
+   "ttfb": [
+    1.033
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/billSummaryMVA": {
+   "dur": [
+    0.769
+   ],
+   "ttfb": [
+    0.763
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/plan/savingsCenterMVA": {
+   "dur": [
+    0.486
+   ],
+   "ttfb": [
+    0.486
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/plan/servicesPerksMVA": {
+   "dur": [
+    0.91
+   ],
+   "ttfb": [
+    0.949
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/nos/gw/retail/rtlMeStoreJourney": {
+   "dur": [
+    0.471
+   ],
+   "ttfb": [
+    0.499
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/notificationMVA": {
+   "dur": [
+    0.933
+   ],
+   "ttfb": [
+    0.924
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/shortcuts/getCustomerPreferencesMVA": {
+   "dur": [
+    0.409
+   ],
+   "ttfb": [
+    0.425
+   ]
+  },
+  "POST www.verizon.com/digital/nsa/secure/gw/udb/bottomCardsMVA": {
+   "dur": [
+    1.263
+   ],
+   "ttfb": [
+    1.286
+   ]
+  }
+ },
+ "condition": "default",
+ "build": {
+  "appVersion": "22.3.0",
+  "build": "25120.7",
+  "os": "26.6.1",
+  "device": "iPhone18,1"
+ },
+ "budgets": [
+  {
+   "label": "Cold start (launch \u2192 first screen)",
+   "metric": "cold_start_total",
+   "max": 3.0,
+   "value": 4.4,
+   "pass": false
+  },
+  {
+   "label": "Launch \u2192 first API call",
+   "metric": "launch_to_first_api",
+   "max": 1.0,
+   "value": 2.87,
+   "pass": false
+  },
+  {
+   "label": "Sign-in spinner",
+   "metric": "spinner:Sign-in (Face ID)",
+   "max": 6.0,
+   "value": 2.4,
+   "pass": true
+  },
+  {
+   "label": "Longest spinner",
+   "metric": "spinner_longest",
+   "max": 5.0,
+   "value": 3.5,
+   "pass": true
+  },
+  {
+   "label": "Total spinner time",
+   "metric": "spinner_total",
+   "max": 10.0,
+   "value": 5.9,
+   "pass": true
+  },
+  {
+   "label": "API p95",
+   "metric": "api_p95",
+   "max": 2.0,
+   "value": 1.26,
+   "pass": true
+  },
+  {
+   "label": "Max on-device queueing",
+   "metric": "queued_max",
+   "max": 0.3,
+   "value": 2.486,
+   "pass": false
+  }
+ ]
+}

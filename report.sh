@@ -29,7 +29,13 @@ if [[ -z "$HAR" ]]; then
   [[ ! -f "$HAR" && -f "$HAR.gz" ]] && HAR="$HAR.gz"
   if [[ ! -f "$HAR" ]]; then
     echo "No traffic.har in $SESSION — exporting the current Proxyman session..."
-    "$PROXYMAN_CLI" export-log -m all -f har -o "$PWD/$HAR" >/dev/null || exit 1
+    "$PROXYMAN_CLI" export-log -m all -f har -o "$PWD/$HAR" 2>&1 | grep -E '❌|rror'
+  fi
+  if [[ ! -s "$HAR" ]]; then
+    # No traffic in Proxyman: still build the screen / log / thread report, just with no requests.
+    echo "⚠️  No Proxyman traffic — building the report without network data."
+    rm -f "$HAR"; HAR="$SESSION/.empty.har"
+    echo '{"log":{"version":"1.2","creator":{"name":"none","version":"0"},"entries":[]}}' > "$HAR"
   fi
 fi
 [[ -f "$HAR" ]] || { echo "HAR file not found: $HAR"; exit 1; }
